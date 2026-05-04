@@ -1,0 +1,15 @@
+.DS_Store
+node_modules/
+out/
+dist/
+.pnpm-store/
+*.log
+_raw_assets/
+CLAUDE.md
+
+landing/node_modules/
+landing/.next/
+landing/.vercel/
+landing/next-env.d.ts
+landing/*.tsbuildinfo
+landing/.env*
