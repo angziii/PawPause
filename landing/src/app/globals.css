@@ -84,81 +84,32 @@ main {
   overflow: hidden;
   pointer-events: none;
   z-index: -1;
+  background-image: url("/social-preview.png");
+  background-position: center;
+  background-size: cover;
 }
 
 .pixel-sky::before {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(transparent 0 72%, rgba(67, 209, 122, 0.13) 72% 100%),
-    repeating-linear-gradient(90deg, transparent 0 28px, rgba(17, 17, 17, 0.06) 28px 30px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 253, 247, 0.18) 0%,
+    rgba(255, 253, 247, 0.38) 48%,
+    rgba(255, 253, 247, 0.82) 100%
+  );
 }
 
 @media (prefers-color-scheme: dark) {
   .pixel-sky::before {
-    background:
-      linear-gradient(transparent 0 72%, rgba(72, 217, 232, 0.1) 72% 100%),
-      repeating-linear-gradient(90deg, transparent 0 28px, rgba(247, 243, 232, 0.06) 28px 30px);
+    background: linear-gradient(
+      180deg,
+      rgba(13, 15, 18, 0.12) 0%,
+      rgba(13, 15, 18, 0.36) 48%,
+      rgba(13, 15, 18, 0.86) 100%
+    );
   }
-}
-
-.runner {
-  position: absolute;
-  top: var(--top);
-  width: 120px;
-  height: 130px;
-  animation-duration: var(--duration);
-  animation-delay: var(--delay);
-  animation-iteration-count: infinite;
-  animation-timing-function: linear;
-}
-
-.runner--right {
-  animation-name: travel-right;
-}
-
-.runner--left {
-  animation-name: travel-left;
-}
-
-.runner__sprite {
-  display: block;
-  width: 96px;
-  height: 104px;
-  background-image: var(--sprite);
-  background-repeat: no-repeat;
-  background-size: 800% 900%;
-  background-position-y: var(--row-y);
-  image-rendering: pixelated;
-  transform: scale(var(--scale));
-  transform-origin: center bottom;
-  animation: sprite-walk 900ms steps(8) infinite, sprite-hop 1600ms steps(2) infinite;
-  filter: drop-shadow(4px 5px 0 var(--shadow));
-}
-
-.runner--left .runner__sprite {
-  transform: scaleX(-1) scale(var(--scale));
-}
-
-@keyframes travel-right {
-  from { left: -150px; }
-  to { left: calc(100% + 150px); }
-}
-
-@keyframes travel-left {
-  from { left: calc(100% + 150px); }
-  to { left: -150px; }
-}
-
-@keyframes sprite-walk {
-  from { background-position-x: 0; }
-  to { background-position-x: 100%; }
-}
-
-@keyframes sprite-hop {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 0 -8px; }
 }
 
 .topbar {
@@ -199,7 +150,8 @@ main {
   width: min(860px, 100%);
   text-align: center;
   padding: 34px 18px;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  background: color-mix(in srgb, var(--paper) 76%, transparent);
+  backdrop-filter: blur(2px);
 }
 
 .eyebrow {

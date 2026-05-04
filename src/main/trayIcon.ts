@@ -1,5 +1,13 @@
 import { nativeImage, nativeTheme } from "electron";
 
+function imageFromPath(path: string, template: boolean): Electron.NativeImage | null {
+  const image = nativeImage.createFromPath(path);
+  if (image.isEmpty()) return null;
+  const resized = image.resize({ width: 22, height: 22 });
+  resized.setTemplateImage(template);
+  return resized;
+}
+
 function renderPaw(size: number, color: [number, number, number]): Buffer {
   const buf = Buffer.alloc(size * size * 4, 0);
   const [r, g, b] = color;
@@ -28,10 +36,14 @@ function renderPaw(size: number, color: [number, number, number]): Buffer {
   return buf;
 }
 
-export function createTrayImage(): Electron.NativeImage {
+export function createTrayImage(iconPath?: string): Electron.NativeImage {
   const size = 22;
 
   if (process.platform === "darwin") {
+    if (iconPath) {
+      const image = imageFromPath(iconPath, true);
+      if (image) return image;
+    }
     const image = nativeImage.createFromBuffer(renderPaw(size, [0, 0, 0]), {
       width: size,
       height: size
@@ -43,5 +55,9 @@ export function createTrayImage(): Electron.NativeImage {
   const color: [number, number, number] = nativeTheme.shouldUseDarkColors
     ? [255, 255, 255]
     : [0, 0, 0];
+  if (iconPath) {
+    const image = imageFromPath(iconPath, false);
+    if (image) return image;
+  }
   return nativeImage.createFromBuffer(renderPaw(size, color), { width: size, height: size });
 }

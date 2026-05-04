@@ -59,6 +59,12 @@ type StoreSchema = {
   stats: TodayStats;
   statsHistory: StatsHistory;
   petPosition?: PetPosition;
+  focusSession?: FocusSession;
+};
+
+type FocusSession = {
+  startedAt: number;
+  endsAt: number;
 };
 
 const MIN_PET_SCALE = 0.3;
@@ -346,6 +352,57 @@ function getStats(): TodayStats {
   return stats;
 }
 
+function getFocusSession(): FocusSession | null {
+  const session = store.get("focusSession");
+  if (
+    !session ||
+    typeof session.startedAt !== "number" ||
+    typeof session.endsAt !== "number" ||
+    !Number.isFinite(session.startedAt) ||
+    !Number.isFinite(session.endsAt) ||
+    session.endsAt <= session.startedAt
+  ) {
+    return null;
+  }
+  return session;
+}
+
+function saveFocusSession(startedAt: number, endsAt: number): void {
+  store.set("focusSession", { startedAt, endsAt });
+}
+
+function clearFocusSession(): void {
+  store.delete("focusSession");
+}
+
+function restoreFocusSession(): void {
+  const session = getFocusSession();
+  if (!session) {
+    clearFocusSession();
+    return;
+  }
+
+  const now = Date.now();
+  if (session.endsAt <= now) {
+    const elapsedMinutes = Math.max(1, Math.round((session.endsAt - session.startedAt) / 60000));
+    clearFocusSession();
+    updateStats((stats) => ({
+      ...stats,
+      focusMinutes: stats.focusMinutes + elapsedMinutes
+    }));
+    setPetState("focusDone");
+    return;
+  }
+
+  focusActive = true;
+  focusStartedAt = session.startedAt;
+  focusEndsAt = session.endsAt;
+  blockingMode = null;
+  setPetState("focusGuard");
+  if (focusTimer) clearTimeout(focusTimer);
+  focusTimer = setTimeout(() => stopFocusMode(true), session.endsAt - now);
+}
+
 function updateStats(mutator: (stats: TodayStats) => TodayStats): void {
   const next = mutator(getStats());
   store.set("stats", next);
@@ -470,6 +527,12 @@ function rendererUrl(route: "pet" | "settings"): string {
   return RENDERER_HTML_PATH;
 }
 
+function runtimeAssetPath(filename: string): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, filename)
+    : resolve(process.cwd(), "build", filename);
+}
+
 function loadRenderer(win: BrowserWindow, route: "pet" | "settings"): void {
   const devServer = process.env.ELECTRON_RENDERER_URL;
   if (devServer) {
@@ -562,6 +625,7 @@ function resizePetWindowForScale(scale: number): void {
 }
 
 function createPetWindow(): void {
+  const icon = runtimeAssetPath("tray-icon.png");
   const bounds = initialPetBounds();
   petLayout = layoutForPetAnchor(bounds);
   petWindow = new BrowserWindow({
@@ -578,6 +642,7 @@ function createPetWindow(): void {
     hasShadow: false,
     backgroundColor: "#00000000",
     alwaysOnTop: true,
+    icon,
     webPreferences: {
       preload: PRELOAD_PATH,
       contextIsolation: true,
@@ -637,7 +702,8 @@ function createSettingsWindow(): void {
     maxWidth: SETTINGS_WINDOW.width,
     minHeight: 400,
     show: false,
-    backgroundColor: "#faf6ee",
+    icon: runtimeAssetPath("tray-icon.png"),
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#14110f" : "#ffffff",
     ...(process.platform === "darwin"
       ? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 14, y: 14 } }
       : {}),
@@ -661,14 +727,17 @@ function createSettingsWindow(): void {
 }
 
 function createTray(): void {
-  tray = new Tray(createTrayImage());
+  tray = new Tray(createTrayImage(runtimeAssetPath(process.platform === "darwin" ? "trayTemplate.png" : "tray-icon.png")));
   tray.setToolTip(APP_NAME);
   tray.on("click", () => {
     tray?.popUpContextMenu();
   });
   if (process.platform !== "darwin") {
-    nativeTheme.on("updated", () => tray?.setImage(createTrayImage()));
+    nativeTheme.on("updated", () => tray?.setImage(createTrayImage(runtimeAssetPath("tray-icon.png"))));
   }
+  nativeTheme.on("updated", () => {
+    settingsWindow?.setBackgroundColor(nativeTheme.shouldUseDarkColors ? "#14110f" : "#ffffff");
+  });
   updateTrayMenu();
 }
 
@@ -1923,6 +1992,7 @@ function startFocusMode(): void {
   blockingMode = null;
   setPetState("focusGuard");
   focusEndsAt = Date.now() + settings.focusDurationMinutes * 60 * 1000;
+  saveFocusSession(focusStartedAt, focusEndsAt);
   sendToAll("app:snapshot", snapshot());
   showBubble({
     id: "focus-start",
@@ -1953,6 +2023,7 @@ function stopFocusMode(completed: boolean): void {
   focusActive = false;
   focusStartedAt = null;
   blockingMode = null;
+  clearFocusSession();
   if (focusTimer) {
     clearTimeout(focusTimer);
     focusTimer = null;
@@ -2169,6 +2240,7 @@ app.whenReady().then(() => {
   protocol.handle("pawpause-asset", handleAssetRequest);
 
   getStats();
+  restoreFocusSession();
   registerIpc();
   createPetWindow();
   createTray();

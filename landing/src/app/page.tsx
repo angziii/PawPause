@@ -1,35 +1,3 @@
-import type { CSSProperties } from "react";
-
-const PET_BASE =
-  "https://raw.githubusercontent.com/angziii/PawPause/main/petdex_pets";
-
-type PixelRunner = {
-  slug: string;
-  name: string;
-  rowY: string;
-  top: string;
-  duration: string;
-  delay: string;
-  scale: string;
-  direction: "left" | "right";
-};
-
-const runners: PixelRunner[] = [
-  { slug: "boxcat", name: "Boxcat", rowY: "12.5%", top: "18%", duration: "17s", delay: "-2s", scale: "0.88", direction: "right" },
-  { slug: "boba", name: "Boba", rowY: "25%", top: "35%", duration: "21s", delay: "-11s", scale: "0.74", direction: "left" },
-  { slug: "byte-bunny", name: "Byte Bunny", rowY: "50%", top: "12%", duration: "9s", delay: "-5s", scale: "0.66", direction: "right" },
-  { slug: "cache-capy", name: "Cache Capy", rowY: "12.5%", top: "58%", duration: "24s", delay: "-14s", scale: "0.82", direction: "right" },
-  { slug: "cash-cuy", name: "Cash Cuy", rowY: "87.5%", top: "72%", duration: "19s", delay: "-7s", scale: "0.78", direction: "left" },
-  { slug: "cosmo", name: "Cosmo", rowY: "50%", top: "44%", duration: "10s", delay: "-1s", scale: "0.7", direction: "right" },
-  { slug: "kebo", name: "Kebo", rowY: "12.5%", top: "82%", duration: "22s", delay: "-17s", scale: "0.86", direction: "right" },
-  { slug: "noir-webling", name: "Noir Webling", rowY: "25%", top: "66%", duration: "20s", delay: "-9s", scale: "0.76", direction: "left" },
-  { slug: "nukey", name: "Nukey", rowY: "50%", top: "25%", duration: "11s", delay: "-3s", scale: "0.68", direction: "right" },
-  { slug: "pixel-panda", name: "Pixel Panda", rowY: "12.5%", top: "48%", duration: "26s", delay: "-19s", scale: "0.9", direction: "left" },
-  { slug: "prompt-penguin", name: "Prompt Penguin", rowY: "87.5%", top: "8%", duration: "18s", delay: "-12s", scale: "0.72", direction: "right" },
-  { slug: "scoop", name: "Scoop", rowY: "50%", top: "76%", duration: "8s", delay: "-4s", scale: "0.64", direction: "left" },
-  { slug: "socksy", name: "Socksy", rowY: "12.5%", top: "30%", duration: "23s", delay: "-15s", scale: "0.8", direction: "right" }
-];
-
 const features = [
   {
     title: "下载桌面应用",
@@ -55,32 +23,11 @@ const downloads = [
   { title: "Windows", detail: "PawPause.Setup.exe", href: "" }
 ];
 
-function spriteStyle(runner: PixelRunner): CSSProperties {
-  return {
-    "--sprite": `url(${PET_BASE}/${runner.slug}/spritesheet.webp)`,
-    "--row-y": runner.rowY,
-    "--top": runner.top,
-    "--duration": runner.duration,
-    "--delay": runner.delay,
-    "--scale": runner.scale
-  } as CSSProperties;
-}
-
 export default function Home() {
   return (
     <main>
       <section className="hero-shell">
-        <div className="pixel-sky" aria-hidden="true">
-          {runners.map((runner) => (
-            <div
-              key={runner.slug}
-              className={`runner runner--${runner.direction}`}
-              style={spriteStyle(runner)}
-            >
-              <span className="runner__sprite" aria-label={runner.name} role="img" />
-            </div>
-          ))}
-        </div>
+        <div className="pixel-sky" aria-hidden="true" />
 
         <nav className="topbar" aria-label="PawPause links">
           <a href="https://github.com/angziii/PawPause" target="_blank" rel="noreferrer">

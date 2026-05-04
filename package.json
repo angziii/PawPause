@@ -19,6 +19,7 @@
     "productName": "PawPause",
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
       "target": [
         { "target": "dmg", "arch": ["arm64", "x64"] }
       ],
@@ -50,6 +51,16 @@
     },
     "files": [
       "out/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "build/tray-icon.png",
+        "to": "tray-icon.png"
+      },
+      {
+        "from": "build/trayTemplate.png",
+        "to": "trayTemplate.png"
+      }
     ]
   },
   "dependencies": {
