@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/social-preview.jpg" alt="PawPause" width="800" />
+  <img src="docs/social-preview.gif" alt="PawPause" width="800" />
 </p>
 
 <h1 align="center">PawPause</h1>
