@@ -12,14 +12,20 @@ export type SpritePetAsset = {
   sheetHeight: number;
 };
 
+export type FallbackPetAsset = {
+  kind: "fallback";
+};
+
+export type PetAsset = SpritePetAsset | FallbackPetAsset;
+
 export function getSelectedPetAsset(
   selectedPetId: string,
   installedPets: InstalledPet[],
   state: PetState
-): SpritePetAsset {
+): PetAsset {
   const installed = allPets(installedPets).find((pet) => pet.slug === selectedPetId) ?? allPets(installedPets)[0];
   if (!installed) {
-    throw new Error("No Petdex sprite pets are available.");
+    return { kind: "fallback" };
   }
 
   const src = new URL(window.pawpause.assetUrl(installed.spritesheetPath));

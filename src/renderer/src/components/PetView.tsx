@@ -180,23 +180,36 @@ export function PetView(): JSX.Element {
         onPointerUp={stopPointer}
         type="button"
       >
-        <span
-          className="sprite-pet"
-          role="img"
-          aria-label={altText}
-          style={
-            {
-              "--sprite-url": `url(${asset.src})`,
-              "--sprite-row": asset.animation.row,
-              "--sprite-frames": asset.animation.frames,
-              "--sprite-duration": `${asset.animation.durationMs}ms`,
-              "--sprite-frame-width": `${asset.frameWidth}px`,
-              "--sprite-frame-height": `${asset.frameHeight}px`,
-              "--sprite-sheet-width": `${asset.sheetWidth}px`,
-              "--sprite-sheet-height": `${asset.sheetHeight}px`
-            } as CSSProperties
-          }
-        />
+        {asset.kind === "sprite" ? (
+          <span
+            className="sprite-pet"
+            role="img"
+            aria-label={altText}
+            style={
+              {
+                "--sprite-url": `url(${asset.src})`,
+                "--sprite-row": asset.animation.row,
+                "--sprite-frames": asset.animation.frames,
+                "--sprite-duration": `${asset.animation.durationMs}ms`,
+                "--sprite-frame-width": `${asset.frameWidth}px`,
+                "--sprite-frame-height": `${asset.frameHeight}px`,
+                "--sprite-sheet-width": `${asset.sheetWidth}px`,
+                "--sprite-sheet-height": `${asset.sheetHeight}px`
+              } as CSSProperties
+            }
+          />
+        ) : (
+          <span className="fallback-pet" role="img" aria-label={altText}>
+            <span className="fallback-pet__ear fallback-pet__ear--left" />
+            <span className="fallback-pet__ear fallback-pet__ear--right" />
+            <span className="fallback-pet__face">
+              <span className="fallback-pet__eye fallback-pet__eye--left" />
+              <span className="fallback-pet__eye fallback-pet__eye--right" />
+              <span className="fallback-pet__nose" />
+            </span>
+            <span className="fallback-pet__tail" />
+          </span>
+        )}
       </button>
     </main>
   );

@@ -6,6 +6,26 @@ dist/
 *.log
 _raw_assets/
 CLAUDE.md
+.codex-bin/
+
+# Code signing certificates, private keys, and notarization credentials
+*.p12
+*.pfx
+*.cer
+*.crt
+*.key
+*.pem
+*.mobileprovision
+*.provisionprofile
+*.apiKey
+AuthKey_*.p8
+APPLE_API_KEY*
+CSC_LINK*
+CSC_KEY_PASSWORD*
+WIN_CSC_LINK*
+WIN_CSC_KEY_PASSWORD*
+notarization.json
+notarytool-profile.json
 
 landing/node_modules/
 landing/.next/

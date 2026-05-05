@@ -42,7 +42,7 @@ export function formatTimer(
   }).format(timestamp);
   if (remainingMs <= 0) return `${absolute} ${labels.now}`;
   const remainingMinutes = Math.max(1, Math.ceil(remainingMs / 60_000));
-  return `${absolute} (${remainingMinutes}m)`;
+  return `${absolute} (${remainingMinutes}${labels.minuteUnit})`;
 }
 
 export function formatTimestamp(

@@ -41,14 +41,14 @@ export function createTrayImage(iconPath?: string): Electron.NativeImage {
 
   if (process.platform === "darwin") {
     if (iconPath) {
-      const image = imageFromPath(iconPath, true);
+      const image = imageFromPath(iconPath, false);
       if (image) return image;
     }
     const image = nativeImage.createFromBuffer(renderPaw(size, [0, 0, 0]), {
       width: size,
       height: size
     });
-    image.setTemplateImage(true);
+    image.setTemplateImage(false);
     return image;
   }
 

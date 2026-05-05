@@ -70,7 +70,7 @@ type FocusSession = {
 const MIN_PET_SCALE = 0.3;
 const MAX_PET_SCALE = 1.5;
 const PET_VISUAL_BASE_SCALE = 0.88;
-const PET_WINDOW_PADDING = 28;
+const PET_WINDOW_PADDING = 52;
 const BUBBLE_WINDOW_WIDTH = 300;
 const BUBBLE_RENDER_WIDTH = 276;
 const BUBBLE_WINDOW_EXTRA_HEIGHT = 190;
@@ -86,10 +86,12 @@ type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
 type AgentMonitorEvent = {
   id: string;
   source: AgentSource;
+  sessionKey: string;
   kind: AgentEventKind;
   message: string;
   state: PetState;
   timestampMs: number;
+  showProgress?: boolean;
 };
 
 app.setName(APP_NAME);
@@ -157,6 +159,7 @@ let agentLastNotificationAt = 0;
 let agentLastProgressBubbleAt = 0;
 let agentMonitorPrimed = false;
 const agentSeenEventIds = new Set<string>();
+const agentActiveSessions = new Map<string, number>();
 const claudeSessionStatuses = new Map<string, string>();
 let ambientPoseActiveState: PetState | null = null;
 let agentPoseActiveState: PetState | null = null;
@@ -624,6 +627,18 @@ function resizePetWindowForScale(scale: number): void {
   persistPetPosition();
 }
 
+function showPetWindowInactive(): void {
+  if (!petWindow || petWindow.isDestroyed()) return;
+  if (!petWindow.isVisible()) petWindow.showInactive();
+  if (process.platform === "darwin") {
+    petWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+  petWindow.setAlwaysOnTop(true, process.platform === "darwin" ? "floating" : "normal");
+  updateTrayMenu();
+  sendPetLayout();
+  publishSnapshot();
+}
+
 function createPetWindow(): void {
   const icon = runtimeAssetPath("tray-icon.png");
   const bounds = initialPetBounds();
@@ -657,12 +672,8 @@ function createPetWindow(): void {
     petWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
   loadRenderer(petWindow, "pet");
-  petWindow.once("ready-to-show", () => {
-    petWindow?.showInactive();
-    updateTrayMenu();
-    sendPetLayout();
-    publishSnapshot();
-  });
+  petWindow.once("ready-to-show", showPetWindowInactive);
+  petWindow.webContents.once("did-finish-load", showPetWindowInactive);
   petWindow.on("show", () => {
     updateTrayMenu();
     publishSnapshot();
@@ -682,9 +693,7 @@ function createPetWindow(): void {
 
 function ensurePetWindowVisible(): void {
   if (!petWindow || petWindow.isDestroyed()) createPetWindow();
-  if (petWindow && !petWindow.isVisible()) petWindow.showInactive();
-  updateTrayMenu();
-  publishSnapshot();
+  showPetWindowInactive();
 }
 
 function createSettingsWindow(): void {
@@ -727,7 +736,7 @@ function createSettingsWindow(): void {
 }
 
 function createTray(): void {
-  tray = new Tray(createTrayImage(runtimeAssetPath(process.platform === "darwin" ? "trayTemplate.png" : "tray-icon.png")));
+  tray = new Tray(createTrayImage(runtimeAssetPath(process.platform === "darwin" ? "icon.png" : "tray-icon.png")));
   tray.setToolTip(APP_NAME);
   tray.on("click", () => {
     tray?.popUpContextMenu();
@@ -1015,13 +1024,21 @@ function movePetForAmbientRoam(): void {
     y: bounds.y + Math.round(bounds.height / 2)
   }).workArea;
   const delta = ambientRoamDirection === "right" ? ambientRoamSpeed : -ambientRoamSpeed;
+  const minX = workArea.x + 4;
+  const maxX = workArea.x + workArea.width - bounds.width - 4;
   let nextX = bounds.x + delta;
 
-  if (ambientRoamDirection === "right" && nextX > workArea.x + workArea.width) {
-    nextX = workArea.x - bounds.width;
+  if (nextX >= maxX) {
+    nextX = maxX;
+    ambientRoamDirection = "left";
+    setPetState("runningLeft");
+    setPetFacing("left");
   }
-  if (ambientRoamDirection === "left" && nextX + bounds.width < workArea.x) {
-    nextX = workArea.x + workArea.width;
+  if (nextX <= minX) {
+    nextX = minX;
+    ambientRoamDirection = "right";
+    setPetState("runningRight");
+    setPetFacing("right");
   }
 
   petWindow.setBounds({
@@ -1049,6 +1066,21 @@ function stopAmbientRoam(scheduleNext: boolean): void {
   }
   if (scheduleNext) scheduleAmbientRoam();
   if (scheduleNext) scheduleAmbientPose();
+}
+
+function startClickRunReaction(direction: "left" | "right"): void {
+  if (!petWindow || petWindow.isDestroyed() || blockingMode || focusActive) return;
+  stopAmbientRoam(false);
+  stopAmbientPose(true);
+  clearAgentPose(true);
+  ambientRoamDirection = direction;
+  ambientRoamSpeed = 4.2 + Math.random() * 2.4;
+  setPetState(direction === "right" ? "runningRight" : "runningLeft");
+  setPetFacing(direction);
+  if (ambientRoamMoveTimer) clearInterval(ambientRoamMoveTimer);
+  if (ambientRoamStopTimer) clearTimeout(ambientRoamStopTimer);
+  ambientRoamMoveTimer = setInterval(movePetForAmbientRoam, AMBIENT_ROAM_TICK_MS);
+  ambientRoamStopTimer = setTimeout(() => stopAmbientRoam(true), 1100 + Math.round(Math.random() * 700));
 }
 
 function clearBreakRunTimers(): void {
@@ -1390,6 +1422,20 @@ function rememberAgentEvent(id: string): void {
   if (typeof first === "string") agentSeenEventIds.delete(first);
 }
 
+function markAgentSessionWorking(event: Pick<AgentMonitorEvent, "sessionKey">): void {
+  agentActiveSessions.set(event.sessionKey, Date.now());
+  for (const [sessionKey, lastSeenAt] of agentActiveSessions) {
+    if (Date.now() - lastSeenAt > AGENT_EVENT_MAX_AGE_MS) {
+      agentActiveSessions.delete(sessionKey);
+    }
+  }
+}
+
+function hasRecentAgentWork(event: Pick<AgentMonitorEvent, "sessionKey">): boolean {
+  const lastSeenAt = agentActiveSessions.get(event.sessionKey);
+  return Boolean(lastSeenAt && Date.now() - lastSeenAt <= AGENT_EVENT_MAX_AGE_MS);
+}
+
 function listRecentFiles(root: string, extension: string, maxFiles: number, maxDepth = 5): string[] {
   if (!existsSync(root)) return [];
   const files: Array<{ path: string; mtimeMs: number }> = [];
@@ -1496,7 +1542,7 @@ function claudePromptProgressText(prompt: string): string {
   return "Claude Code 正在处理任务";
 }
 
-function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source" | "timestampMs"> | null {
+function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs"> | null {
   const compact = compactAgentText(text);
   if (!compact) return null;
 
@@ -1549,12 +1595,13 @@ function makeAgentEvent(
   path: string,
   timestampMs: number,
   text: string,
-  classified: Omit<AgentMonitorEvent, "id" | "source" | "timestampMs">
+  classified: Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs">
 ): AgentMonitorEvent {
   return {
     ...classified,
     id: `${source}:${path}:${timestampMs}:${classified.kind}:${hashText(text)}`,
     source,
+    sessionKey: `${source}:${path}`,
     timestampMs
   };
 }
@@ -1583,6 +1630,7 @@ function collectCodexSessionEvents(): AgentMonitorEvent[] {
         events.push({
           id: `Codex:${file}:${timestampMs}:${payloadType}`,
           source: "Codex",
+          sessionKey: `Codex:${file}`,
           kind: "working",
           message: payloadType === "function_call" ? "正在执行工具" : "正在思考",
           state: "thinking",
@@ -1609,10 +1657,12 @@ function collectClaudeSessionEvents(): AgentMonitorEvent[] {
         events.push({
           id: `Claude Code:${file}:${timestampMs}:prompt:${hashText(prompt)}`,
           source: "Claude Code",
+          sessionKey: `Claude Code:${file}`,
           kind: "working",
           message,
           state: "thinking",
-          timestampMs
+          timestampMs,
+          showProgress: false
         });
         continue;
       }
@@ -1628,7 +1678,7 @@ function collectClaudeSessionEvents(): AgentMonitorEvent[] {
         if (classified) {
           const uuid = stringValue(line.uuid) || hashText(text);
           events.push({
-            ...makeAgentEvent("Claude Code", `${file}:${uuid}`, timestampMs, text, classified),
+            ...makeAgentEvent("Claude Code", file, timestampMs, text, classified),
             id: `Claude Code:${file}:${uuid}:${classified.kind}`
           });
         }
@@ -1639,6 +1689,7 @@ function collectClaudeSessionEvents(): AgentMonitorEvent[] {
         events.push({
           id: `Claude Code:${file}:${timestampMs}:tool_use:${hashText(text)}`,
           source: "Claude Code",
+          sessionKey: `Claude Code:${file}`,
           kind: "working",
           message: compactAgentText(text || "正在执行工具"),
           state: "thinking",
@@ -1674,16 +1725,30 @@ function collectClaudeStatusEvents(): AgentMonitorEvent[] {
         events.push({
           id: `Claude Code:${sessionId}:${timestampMs}:idle`,
           source: "Claude Code",
+          sessionKey: `Claude Code:${sessionId}`,
           kind: "complete",
           message: "任务已停下，可以看结果",
           state: "waving",
           timestampMs
         });
       }
+      if (/busy|running|working|processing/i.test(status)) {
+        events.push({
+          id: `Claude Code:${sessionId}:${timestampMs}:busy`,
+          source: "Claude Code",
+          sessionKey: `Claude Code:${sessionId}`,
+          kind: "working",
+          message: "Claude Code 正在处理任务",
+          state: "thinking",
+          timestampMs,
+          showProgress: false
+        });
+      }
       if (/error|failed/i.test(status)) {
         events.push({
           id: `Claude Code:${sessionId}:${timestampMs}:failed`,
           source: "Claude Code",
+          sessionKey: `Claude Code:${sessionId}`,
           kind: "failed",
           message: "任务状态变成失败",
           state: "failed",
@@ -1785,8 +1850,9 @@ async function checkAgentActivityNow(): Promise<void> {
       for (const event of events) rememberAgentEvent(event.id);
       agentMonitorPrimed = true;
       if (latestWorking && now - latestWorking.timestampMs < 30_000) {
+        markAgentSessionWorking(latestWorking);
         agentLastWorkingAt = Date.now();
-        showAgentWorkingPose(latestWorking);
+        if (latestWorking.showProgress !== false) showAgentWorkingPose(latestWorking);
       }
       return;
     }
@@ -1795,8 +1861,13 @@ async function checkAgentActivityNow(): Promise<void> {
       if (agentSeenEventIds.has(event.id)) continue;
       if (event.kind === "working") {
         rememberAgentEvent(event.id);
+        markAgentSessionWorking(event);
         agentLastWorkingAt = Date.now();
-        showAgentWorkingPose(event);
+        if (event.showProgress !== false) showAgentWorkingPose(event);
+        continue;
+      }
+      if (!hasRecentAgentWork(event)) {
+        rememberAgentEvent(event.id);
         continue;
       }
       if (notifyAgentEvent(event)) rememberAgentEvent(event.id);
@@ -1812,7 +1883,7 @@ async function checkAgentActivityNow(): Promise<void> {
         timestampMs: Date.now()
       });
     }
-    if (titleLooksDone(active.windowTitle) && agentLastWorkingAt) {
+    if (titleLooksDone(active.windowTitle) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
       showAgentWorkingPose({
         source: "Codex",
         message: "Agent may need review",
@@ -1888,6 +1959,45 @@ function happyFeedback(message: string | null = pick(text().bubble.woof), after?
     }
     after?.();
   }, 1900);
+}
+
+function simplePetReaction(state: PetState, durationMs: number, message: string | null = null): void {
+  if (blockingMode) return;
+  stopAmbientRoam(false);
+  stopAmbientPose(true);
+  clearAgentPose(true);
+  const returnState = focusActive ? "focusGuard" : "idle";
+  setPetState(state);
+  if (message) showBubble({ id: `click-${state}-${Date.now()}`, message, autoDismissMs: durationMs - 100 });
+  setTimeout(() => {
+    if (message) hideBubble();
+    if (petState === state) setPetState(returnState);
+    if (returnState === "idle") {
+      scheduleAmbientRoam(1200);
+      scheduleAmbientPose();
+    }
+  }, durationMs);
+}
+
+function randomPetClickReaction(): void {
+  const reaction = pick([
+    "happy",
+    "sad",
+    "waving",
+    "jumping",
+    "thinking",
+    "run-left",
+    "run-right"
+  ] as const);
+  if (reaction === "run-left" || reaction === "run-right") {
+    startClickRunReaction(reaction === "run-left" ? "left" : "right");
+    return;
+  }
+  if (reaction === "happy") {
+    happyFeedback(Math.random() > 0.5 ? pick(text().bubble.woof) : null);
+    return;
+  }
+  simplePetReaction(reaction, reaction === "sad" ? 1500 : 1300);
 }
 
 function triggerBreakReminder(fromDemo: boolean): void {
@@ -2184,7 +2294,7 @@ function registerIpc(): void {
   ipcMain.on("break:end-screen-block", finishBreakRun);
   ipcMain.on("pet:clicked", () => {
     if (blockingMode) return;
-    happyFeedback(null);
+    randomPetClickReaction();
   });
   ipcMain.on("pet:context-menu", showPetContextMenu);
   ipcMain.on("pet:drag-start", (_event, offset: { offsetX: number; offsetY: number }) =>

@@ -128,6 +128,106 @@ textarea {
   transform: scaleX(-1);
 }
 
+.fallback-pet {
+  --fallback-size: calc(156px * var(--pet-render-scale));
+  display: block;
+  height: var(--fallback-size);
+  image-rendering: pixelated;
+  pointer-events: none;
+  position: relative;
+  transform-origin: center bottom;
+  width: var(--fallback-size);
+}
+
+.pet-button.facing-left .fallback-pet {
+  transform: scaleX(-1);
+}
+
+.fallback-pet__face {
+  background: #f5c96f;
+  border: calc(8px * var(--pet-render-scale)) solid #2f2720;
+  border-radius: 26% 26% 32% 32%;
+  bottom: 0;
+  box-shadow:
+    inset calc(-12px * var(--pet-render-scale)) calc(-10px * var(--pet-render-scale)) 0 #d99045,
+    inset calc(10px * var(--pet-render-scale)) calc(8px * var(--pet-render-scale)) 0 #ffe19b;
+  height: 74%;
+  left: 12%;
+  position: absolute;
+  width: 76%;
+}
+
+.fallback-pet__ear {
+  background: #d99045;
+  border: calc(8px * var(--pet-render-scale)) solid #2f2720;
+  height: 42%;
+  position: absolute;
+  top: 0;
+  width: 34%;
+  z-index: -1;
+}
+
+.fallback-pet__ear--left {
+  border-radius: 26% 0 0 10%;
+  left: 10%;
+  transform: rotate(-14deg);
+}
+
+.fallback-pet__ear--right {
+  border-radius: 0 26% 10% 0;
+  right: 10%;
+  transform: rotate(14deg);
+}
+
+.fallback-pet__eye {
+  background: #2f2720;
+  border-radius: 50%;
+  height: 12%;
+  position: absolute;
+  top: 42%;
+  width: 12%;
+}
+
+.fallback-pet__eye--left {
+  left: 27%;
+}
+
+.fallback-pet__eye--right {
+  right: 27%;
+}
+
+.fallback-pet__nose {
+  background: #2f2720;
+  border-radius: 45% 45% 55% 55%;
+  height: 9%;
+  left: 45.5%;
+  position: absolute;
+  top: 58%;
+  width: 9%;
+}
+
+.fallback-pet__tail {
+  border: calc(9px * var(--pet-render-scale)) solid #2f2720;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0 48% 0 0;
+  height: 30%;
+  position: absolute;
+  right: -1%;
+  top: 48%;
+  transform: rotate(22deg);
+  width: 22%;
+  z-index: -2;
+}
+
+.pet-shell.is-screen-block .fallback-pet {
+  --fallback-size: min(76vw, 76vh);
+}
+
+.fallback-pet--preview {
+  --pet-render-scale: 0.28;
+}
+
 @keyframes sprite-pet-state {
   from {
     background-position: 0 var(--sprite-y);
@@ -186,7 +286,6 @@ textarea {
   background: rgba(255, 252, 244, 0.96);
   border: 1px solid rgba(76, 57, 39, 0.14);
   border-radius: 16px;
-  box-shadow: 0 12px 28px rgba(45, 38, 31, 0.18);
   color: #2d261f;
   bottom: calc((208px * var(--pet-render-scale)) + 10px);
   box-sizing: border-box;
@@ -221,7 +320,6 @@ textarea {
   .speech-bubble {
     background: rgba(25, 22, 19, 0.96);
     border-color: rgba(255, 246, 235, 0.14);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
     color: #f2ece4;
   }
 

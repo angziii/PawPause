@@ -1,0 +1,52 @@
+<p align="center">
+  <img src="../social-preview.png" alt="PawPause" width="800" />
+</p>
+
+<h1 align="center">PawPause</h1>
+
+<p align="center">
+  <a href="../../README.md">English</a> ·
+  <a href="README.zh-CN.md">中文</a> ·
+  <a href="README.ja.md">日本語</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="README.fr.md">Français</a> ·
+  <a href="README.de.md">Deutsch</a> ·
+  <a href="README.ru.md">Русский</a> ·
+  <a href="README.ar.md">العربية</a> ·
+  <a href="README.es.md">Español</a>
+</p>
+
+PawPause ist ein Pixel-Desktop-Begleiter für macOS und Windows. Er bleibt auf deinem Bildschirm, erinnert an Pausen und Wasser, schützt Fokuszeiten und unterstützt Figuren im PetDex-Format.
+
+## Funktionen
+
+- Transparenter, immer sichtbarer und verschiebbarer Pixel-Begleiter
+- Pausenerinnerungen und optionaler Bildschirmblock
+- Wassererinnerungen mit Verlauf
+- macOS-Ablenkungserkennung nach App oder Schlüsselwort
+- Lokale Codex / Claude-Code-Hinweise bei Abschluss oder Review-Bedarf
+- Import von `pet.json + spritesheet.webp/png` Paketen
+- Automatisches Lesen von PetDex-Figuren in `~/.codex/pets`
+- Oberfläche in 9 Sprachen und System-Dunkelmodus
+
+## Installation
+
+Lade Installer unter [Releases](https://github.com/angziii/PawPause/releases) herunter.
+
+| Datei | Plattform |
+| --- | --- |
+| `PawPause-x.x.x-mac-arm64.dmg` | macOS Apple Silicon |
+| `PawPause-x.x.x-mac-x64.dmg` | macOS Intel |
+| `PawPause-x.x.x-win-x64.exe` | Windows 64-bit |
+
+## Aus dem Quellcode starten
+
+```bash
+git clone https://github.com/angziii/PawPause.git
+cd PawPause
+corepack enable
+corepack pnpm install
+corepack pnpm dev
+```
+
+Große Figurenpakete werden nicht mitgeliefert, damit das Repository klein bleibt. Importiere sie lokal oder installiere sie mit PetDex.

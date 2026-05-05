@@ -1,11 +1,11 @@
 import type { JSX } from "react";
-import { i18n } from "../../shared/i18n";
+import { i18n, resolveLanguage } from "../../shared/i18n";
 import { PetView } from "./components/PetView";
 import { SettingsView } from "./components/SettingsView";
 import { pawpauseApi } from "./pawpauseApi";
 
 function PreloadUnavailable(): JSX.Element {
-  const labels = i18n("zh-CN").settings;
+  const labels = i18n(resolveLanguage(navigator.language)).settings;
   return (
     <main className="settings-shell">
       <header>
