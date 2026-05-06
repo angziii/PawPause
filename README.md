@@ -9,15 +9,6 @@
 </p>
 
 <p align="center">
-  <strong>GitHub description</strong><br />
-  EN: Pixel desktop companion for breaks, hydration, focus, and local agent activity alerts.<br />
-  中文：像素桌面宠物，提醒休息喝水、守护专注，并监听本地 Agent 任务动态。<br />
-  日本語：休憩・水分補給・集中・ローカル Agent 通知を支えるピクセルデスクトップ相棒。<br />
-  한국어: 휴식, 수분 섭취, 집중, 로컬 Agent 활동 알림을 돕는 픽셀 데스크톱 동반자.<br />
-  Español: Mascota pixel de escritorio para pausas, hidratación, enfoque y alertas de agentes locales.
-</p>
-
-<p align="center">
   <a href="docs/GLOSSARY.md">Glossary / 术语表</a>
 </p>
 
