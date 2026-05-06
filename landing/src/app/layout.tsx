@@ -7,13 +7,13 @@ export const metadata: Metadata = {
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000"
   ),
-  title: "PawPause - 桌面像素小伙伴",
+  title: "PawPause - Pixel desktop companion",
   description:
-    "一个住在你桌面上的像素小伙伴，提醒你休息、喝水、保持专注。支持 macOS 和 Windows。",
+    "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code activity nudges.",
   openGraph: {
-    title: "PawPause - 桌面像素小伙伴",
+    title: "PawPause - Pixel desktop companion",
     description:
-      "一个住在你桌面上的像素小伙伴，提醒你休息、喝水、保持专注。",
+      "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code activity nudges.",
     images: ["/social-preview.png"],
   },
 };
@@ -24,13 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en">
       <body>
         {children}
       </body>
