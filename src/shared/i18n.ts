@@ -99,12 +99,51 @@ const CORE_I18N = {
         "Codex/Claude 那边可能收工了",
         "工作结果出来啦，看看要不要接着处理"
       ],
-      agentWorking: (source: string) => `${source} 正在工作`,
-      agentThinking: (source: string) => `${source} 正在思考`,
-      agentUsingTool: (source: string) => `${source} 正在执行工具`,
-      agentNeedsReview: (source: string) => `${source} 需要你处理`,
-      agentFailed: (source: string) => `${source} 遇到问题`,
-      agentComplete: (source: string) => `${source} 完成了，去看一眼吧`
+      agentWorking: [
+        (source: string) => `${source} 正在工作`,
+        (source: string) => `${source} 还在推进任务`,
+        (source: string) => `${source} 忙着处理中`
+      ],
+      agentThinking: [
+        (source: string) => `${source} 正在思考`,
+        (source: string) => `${source} 在整理思路`,
+        (source: string) => `${source} 正在推理下一步`
+      ],
+      agentUsingTool: [
+        (source: string) => `${source} 正在调用工具`,
+        (source: string) => `${source} 在用工具查东西`,
+        (source: string) => `${source} 正在处理工具结果`
+      ],
+      agentRunningScript: [
+        (source: string) => `${source} 正在执行脚本`,
+        (source: string) => `${source} 在跑命令`,
+        (source: string) => `${source} 正在检查命令输出`
+      ],
+      agentNeedsChoice: [
+        (source: string) => `${source} 需要你做个选择`,
+        (source: string) => `${source} 在等你确认方案`,
+        (source: string) => `${source} 有个选项要你决定`
+      ],
+      agentNeedsPermission: [
+        (source: string) => `${source} 需要权限才能继续`,
+        (source: string) => `${source} 在等你授权`,
+        (source: string) => `${source} 被权限卡住了`
+      ],
+      agentNeedsReview: [
+        (source: string) => `${source} 需要你处理`,
+        (source: string) => `${source} 在等你看一眼`,
+        (source: string) => `${source} 有结果需要确认`
+      ],
+      agentFailed: [
+        (source: string) => `${source} 遇到问题`,
+        (source: string) => `${source} 好像卡住了`,
+        (source: string) => `${source} 运行失败了`
+      ],
+      agentComplete: [
+        (source: string) => `${source} 完成了，去看一眼吧`,
+        (source: string) => `${source} 好像收工了`,
+        (source: string) => `${source} 的结果出来了`
+      ]
     },
     actions: {
       breakDone: "我站起来了",
@@ -306,12 +345,51 @@ const CORE_I18N = {
         "Codex or Claude may have finished.",
         "The result is ready. Want to review it?"
       ],
-      agentWorking: (source: string) => `${source} is working`,
-      agentThinking: (source: string) => `${source} is thinking`,
-      agentUsingTool: (source: string) => `${source} is using a tool`,
-      agentNeedsReview: (source: string) => `${source} needs your attention`,
-      agentFailed: (source: string) => `${source} ran into a problem`,
-      agentComplete: (source: string) => `${source} looks done. Take a look?`
+      agentWorking: [
+        (source: string) => `${source} is working`,
+        (source: string) => `${source} is moving the task forward`,
+        (source: string) => `${source} is still on it`
+      ],
+      agentThinking: [
+        (source: string) => `${source} is thinking`,
+        (source: string) => `${source} is sorting out the next step`,
+        (source: string) => `${source} is reasoning through it`
+      ],
+      agentUsingTool: [
+        (source: string) => `${source} is using a tool`,
+        (source: string) => `${source} is checking tool results`,
+        (source: string) => `${source} is calling a tool`
+      ],
+      agentRunningScript: [
+        (source: string) => `${source} is running a script`,
+        (source: string) => `${source} is running a command`,
+        (source: string) => `${source} is checking command output`
+      ],
+      agentNeedsChoice: [
+        (source: string) => `${source} needs you to choose`,
+        (source: string) => `${source} is waiting on a decision`,
+        (source: string) => `${source} needs you to pick an option`
+      ],
+      agentNeedsPermission: [
+        (source: string) => `${source} needs permission to continue`,
+        (source: string) => `${source} is waiting for approval`,
+        (source: string) => `${source} is blocked on permission`
+      ],
+      agentNeedsReview: [
+        (source: string) => `${source} needs your attention`,
+        (source: string) => `${source} is waiting for review`,
+        (source: string) => `${source} has something for you to check`
+      ],
+      agentFailed: [
+        (source: string) => `${source} ran into a problem`,
+        (source: string) => `${source} seems stuck`,
+        (source: string) => `${source} hit a failure`
+      ],
+      agentComplete: [
+        (source: string) => `${source} looks done. Take a look?`,
+        (source: string) => `${source} seems finished`,
+        (source: string) => `${source} has results ready`
+      ]
     },
     actions: {
       breakDone: "I stood up",
@@ -478,12 +556,15 @@ export const I18N = {
       breakRun: [(seconds: number) => `あと ${seconds} 秒です。画面から離れてください。`],
       focusWarning: [(rule: string) => `集中時間です。${rule} は閉じましょう。`],
       agentDone: ["Agent の作業が終わったようです。確認してください。"],
-      agentWorking: (source: string) => `${source} が作業中です`,
-      agentThinking: (source: string) => `${source} が考えています`,
-      agentUsingTool: (source: string) => `${source} がツールを実行中です`,
-      agentNeedsReview: (source: string) => `${source} の確認が必要です`,
-      agentFailed: (source: string) => `${source} で問題が発生しました`,
-      agentComplete: (source: string) => `${source} が完了したようです。確認してください。`
+      agentWorking: [(source: string) => `${source} が作業中です`],
+      agentThinking: [(source: string) => `${source} が考えています`],
+      agentUsingTool: [(source: string) => `${source} がツールを実行中です`],
+      agentRunningScript: [(source: string) => `${source} がコマンドを実行中です`],
+      agentNeedsChoice: [(source: string) => `${source} で選択が必要です`],
+      agentNeedsPermission: [(source: string) => `${source} に権限が必要です`],
+      agentNeedsReview: [(source: string) => `${source} の確認が必要です`],
+      agentFailed: [(source: string) => `${source} で問題が発生しました`],
+      agentComplete: [(source: string) => `${source} が完了したようです。確認してください。`]
     },
     actions: {
       breakDone: "立ち上がりました",
@@ -563,12 +644,15 @@ export const I18N = {
       breakRun: [(seconds: number) => `${seconds}초 남았어요. 화면에서 잠깐 떨어져요.`],
       focusWarning: [(rule: string) => `집중 시간이에요. ${rule}은 닫아주세요.`],
       agentDone: ["Agent 작업이 끝난 것 같아요. 확인해보세요."],
-      agentWorking: (source: string) => `${source} 작업 중이에요`,
-      agentThinking: (source: string) => `${source} 생각 중이에요`,
-      agentUsingTool: (source: string) => `${source} 도구 실행 중이에요`,
-      agentNeedsReview: (source: string) => `${source} 확인이 필요해요`,
-      agentFailed: (source: string) => `${source}에 문제가 생겼어요`,
-      agentComplete: (source: string) => `${source} 작업이 끝난 것 같아요. 확인해보세요.`
+      agentWorking: [(source: string) => `${source} 작업 중이에요`],
+      agentThinking: [(source: string) => `${source} 생각 중이에요`],
+      agentUsingTool: [(source: string) => `${source} 도구 실행 중이에요`],
+      agentRunningScript: [(source: string) => `${source} 명령 실행 중이에요`],
+      agentNeedsChoice: [(source: string) => `${source} 선택이 필요해요`],
+      agentNeedsPermission: [(source: string) => `${source} 권한이 필요해요`],
+      agentNeedsReview: [(source: string) => `${source} 확인이 필요해요`],
+      agentFailed: [(source: string) => `${source}에 문제가 생겼어요`],
+      agentComplete: [(source: string) => `${source} 작업이 끝난 것 같아요. 확인해보세요.`]
     },
     actions: {
       breakDone: "일어났어요",
@@ -623,12 +707,15 @@ export const I18N = {
       breakRun: [(seconds: number) => `Quedan ${seconds}s. Aléjate de la pantalla.`],
       focusWarning: [(rule: string) => `Es hora de concentrarse. Cierra ${rule}.`],
       agentDone: ["Tu Agent parece haber terminado. Revísalo."],
-      agentWorking: (source: string) => `${source} está trabajando`,
-      agentThinking: (source: string) => `${source} está pensando`,
-      agentUsingTool: (source: string) => `${source} está usando una herramienta`,
-      agentNeedsReview: (source: string) => `${source} necesita tu atención`,
-      agentFailed: (source: string) => `${source} tuvo un problema`,
-      agentComplete: (source: string) => `${source} parece haber terminado. Revísalo.`
+      agentWorking: [(source: string) => `${source} está trabajando`],
+      agentThinking: [(source: string) => `${source} está pensando`],
+      agentUsingTool: [(source: string) => `${source} está usando una herramienta`],
+      agentRunningScript: [(source: string) => `${source} está ejecutando un comando`],
+      agentNeedsChoice: [(source: string) => `${source} necesita que elijas`],
+      agentNeedsPermission: [(source: string) => `${source} necesita permiso`],
+      agentNeedsReview: [(source: string) => `${source} necesita tu atención`],
+      agentFailed: [(source: string) => `${source} tuvo un problema`],
+      agentComplete: [(source: string) => `${source} parece haber terminado. Revísalo.`]
     },
     actions: {
       breakDone: "Me levanté",
@@ -678,12 +765,15 @@ export const I18N = {
       breakRun: [(seconds: number) => `Encore ${seconds} s. Éloigne-toi de l'écran.`],
       focusWarning: [(rule: string) => `C'est le moment de se concentrer. Ferme ${rule}.`],
       agentDone: ["Ton Agent semble avoir terminé. Va vérifier."],
-      agentWorking: (source: string) => `${source} travaille`,
-      agentThinking: (source: string) => `${source} réfléchit`,
-      agentUsingTool: (source: string) => `${source} utilise un outil`,
-      agentNeedsReview: (source: string) => `${source} demande ton attention`,
-      agentFailed: (source: string) => `${source} a rencontré un problème`,
-      agentComplete: (source: string) => `${source} semble avoir terminé. Va vérifier.`
+      agentWorking: [(source: string) => `${source} travaille`],
+      agentThinking: [(source: string) => `${source} réfléchit`],
+      agentUsingTool: [(source: string) => `${source} utilise un outil`],
+      agentRunningScript: [(source: string) => `${source} exécute une commande`],
+      agentNeedsChoice: [(source: string) => `${source} attend ton choix`],
+      agentNeedsPermission: [(source: string) => `${source} a besoin d'une autorisation`],
+      agentNeedsReview: [(source: string) => `${source} demande ton attention`],
+      agentFailed: [(source: string) => `${source} a rencontré un problème`],
+      agentComplete: [(source: string) => `${source} semble avoir terminé. Va vérifier.`]
     },
     actions: {
       breakDone: "Je me suis levé",
@@ -733,12 +823,15 @@ export const I18N = {
       breakRun: [(seconds: number) => `بقيت ${seconds} ثانية. ابتعد عن الشاشة.`],
       focusWarning: [(rule: string) => `حان وقت التركيز. أغلق ${rule}.`],
       agentDone: ["يبدو أن الوكيل انتهى. تحقق من النتيجة."],
-      agentWorking: (source: string) => `${source} يعمل الآن`,
-      agentThinking: (source: string) => `${source} يفكر الآن`,
-      agentUsingTool: (source: string) => `${source} يستخدم أداة`,
-      agentNeedsReview: (source: string) => `${source} يحتاج انتباهك`,
-      agentFailed: (source: string) => `${source} واجه مشكلة`,
-      agentComplete: (source: string) => `${source} انتهى على ما يبدو. تحقق من النتيجة.`
+      agentWorking: [(source: string) => `${source} يعمل الآن`],
+      agentThinking: [(source: string) => `${source} يفكر الآن`],
+      agentUsingTool: [(source: string) => `${source} يستخدم أداة`],
+      agentRunningScript: [(source: string) => `${source} يشغل أمرا`],
+      agentNeedsChoice: [(source: string) => `${source} يحتاج اختيارك`],
+      agentNeedsPermission: [(source: string) => `${source} يحتاج إذنا`],
+      agentNeedsReview: [(source: string) => `${source} يحتاج انتباهك`],
+      agentFailed: [(source: string) => `${source} واجه مشكلة`],
+      agentComplete: [(source: string) => `${source} انتهى على ما يبدو. تحقق من النتيجة.`]
     },
     actions: {
       breakDone: "وقفت",
@@ -788,12 +881,15 @@ export const I18N = {
       breakRun: [(seconds: number) => `Noch ${seconds} s. Weg vom Bildschirm.`],
       focusWarning: [(rule: string) => `Fokuszeit. Bitte ${rule} schließen.`],
       agentDone: ["Dein Agent scheint fertig zu sein. Schau nach."],
-      agentWorking: (source: string) => `${source} arbeitet`,
-      agentThinking: (source: string) => `${source} denkt nach`,
-      agentUsingTool: (source: string) => `${source} verwendet ein Tool`,
-      agentNeedsReview: (source: string) => `${source} braucht deine Aufmerksamkeit`,
-      agentFailed: (source: string) => `${source} ist auf ein Problem gestoßen`,
-      agentComplete: (source: string) => `${source} scheint fertig zu sein. Schau nach.`
+      agentWorking: [(source: string) => `${source} arbeitet`],
+      agentThinking: [(source: string) => `${source} denkt nach`],
+      agentUsingTool: [(source: string) => `${source} verwendet ein Tool`],
+      agentRunningScript: [(source: string) => `${source} führt einen Befehl aus`],
+      agentNeedsChoice: [(source: string) => `${source} wartet auf deine Entscheidung`],
+      agentNeedsPermission: [(source: string) => `${source} braucht eine Berechtigung`],
+      agentNeedsReview: [(source: string) => `${source} braucht deine Aufmerksamkeit`],
+      agentFailed: [(source: string) => `${source} ist auf ein Problem gestoßen`],
+      agentComplete: [(source: string) => `${source} scheint fertig zu sein. Schau nach.`]
     },
     actions: {
       breakDone: "Ich bin aufgestanden",
@@ -843,12 +939,15 @@ export const I18N = {
       breakRun: [(seconds: number) => `Осталось ${seconds} с. Отойди от экрана.`],
       focusWarning: [(rule: string) => `Время фокуса. Закрой ${rule}.`],
       agentDone: ["Похоже, Agent закончил работу. Проверь результат."],
-      agentWorking: (source: string) => `${source} работает`,
-      agentThinking: (source: string) => `${source} думает`,
-      agentUsingTool: (source: string) => `${source} использует инструмент`,
-      agentNeedsReview: (source: string) => `${source} требует твоего внимания`,
-      agentFailed: (source: string) => `${source} столкнулся с проблемой`,
-      agentComplete: (source: string) => `${source}, похоже, закончил работу. Проверь результат.`
+      agentWorking: [(source: string) => `${source} работает`],
+      agentThinking: [(source: string) => `${source} думает`],
+      agentUsingTool: [(source: string) => `${source} использует инструмент`],
+      agentRunningScript: [(source: string) => `${source} выполняет команду`],
+      agentNeedsChoice: [(source: string) => `${source} ждет твоего выбора`],
+      agentNeedsPermission: [(source: string) => `${source} требуется разрешение`],
+      agentNeedsReview: [(source: string) => `${source} требует твоего внимания`],
+      agentFailed: [(source: string) => `${source} столкнулся с проблемой`],
+      agentComplete: [(source: string) => `${source}, похоже, закончил работу. Проверь результат.`]
     },
     actions: {
       breakDone: "Я встал",

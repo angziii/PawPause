@@ -83,12 +83,23 @@ const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
 
 type AgentSource = "Codex" | "Claude Code";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
+type AgentProgressKind =
+  | "working"
+  | "thinking"
+  | "tool"
+  | "script"
+  | "choice"
+  | "permission"
+  | "review"
+  | "complete"
+  | "failed";
 type AgentMonitorEvent = {
   id: string;
   source: AgentSource;
   sessionKey: string;
   kind: AgentEventKind;
   message: string;
+  progressKind?: AgentProgressKind;
   state: PetState;
   timestampMs: number;
   showProgress?: boolean;
@@ -1542,14 +1553,51 @@ function claudePromptProgressText(prompt: string): string {
   return "Claude Code 正在处理任务";
 }
 
+function classifyAgentProgressKind(text: string, fallback: AgentProgressKind = "working"): AgentProgressKind {
+  if (/(权限|授权|批准|允许|permission|approval|authorize|grant access|allow access|sandbox)/i.test(text)) {
+    return "permission";
+  }
+  if (/(选择|选项|决定|确认方案|二选一|choose|pick|select|option|decision|which one)/i.test(text)) {
+    return "choice";
+  }
+  if (/(脚本|命令|终端|执行.*(pnpm|npm|yarn|node|python|pytest|tsc|shell)|script|command|terminal|exec_command|write_stdin|running command|shell)/i.test(text)) {
+    return "script";
+  }
+  if (/(工具|调用|tool|function_call)/i.test(text)) return "tool";
+  if (/(思考|推理|reasoning|thinking)/i.test(text)) return "thinking";
+  if (/(需要|review|attention|done|完成|停下)/i.test(text)) return "review";
+  return fallback;
+}
+
 function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs"> | null {
   const compact = compactAgentText(text);
   if (!compact) return null;
 
-  if (/(报错|失败|没有通过|无法继续|blocked|failed|error|permission denied)/i.test(text)) {
+  const progressKind = classifyAgentProgressKind(text);
+
+  if (progressKind === "permission") {
+    return {
+      kind: "needs-review",
+      message: compact,
+      progressKind,
+      state: "reviewing"
+    };
+  }
+
+  if (progressKind === "choice") {
+    return {
+      kind: "needs-review",
+      message: compact,
+      progressKind,
+      state: "reviewing"
+    };
+  }
+
+  if (/(报错|失败|没有通过|无法继续|blocked|failed|error)/i.test(text)) {
     return {
       kind: "failed",
       message: compact,
+      progressKind: "failed",
       state: "failed"
     };
   }
@@ -1558,6 +1606,7 @@ function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source
     return {
       kind: "needs-review",
       message: compact,
+      progressKind: "review",
       state: "reviewing"
     };
   }
@@ -1569,6 +1618,7 @@ function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source
     return {
       kind: "complete",
       message: compact,
+      progressKind: "complete",
       state: "waving"
     };
   }
@@ -1577,6 +1627,7 @@ function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source
     return {
       kind: "working",
       message: compact,
+      progressKind,
       state: "thinking"
     };
   }
@@ -1584,19 +1635,25 @@ function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source
   return null;
 }
 
-function agentProgressMessage(event: Pick<AgentMonitorEvent, "source" | "message">): string {
+function agentProgressMessage(event: Pick<AgentMonitorEvent, "source" | "message" | "progressKind">): string {
   const labels = text().bubble;
-  if (/(需要|review|attention|done|完成|停下)/i.test(event.message)) return labels.agentNeedsReview(event.source);
-  if (/(思考|thinking|reasoning)/i.test(event.message)) return labels.agentThinking(event.source);
-  if (/(工具|tool|function_call|executing)/i.test(event.message)) return labels.agentUsingTool(event.source);
-  return labels.agentWorking(event.source);
+  const progressKind = event.progressKind ?? classifyAgentProgressKind(event.message);
+  if (progressKind === "permission") return pick(labels.agentNeedsPermission)(event.source);
+  if (progressKind === "choice") return pick(labels.agentNeedsChoice)(event.source);
+  if (progressKind === "script") return pick(labels.agentRunningScript)(event.source);
+  if (progressKind === "tool") return pick(labels.agentUsingTool)(event.source);
+  if (progressKind === "thinking") return pick(labels.agentThinking)(event.source);
+  if (progressKind === "review") return pick(labels.agentNeedsReview)(event.source);
+  return pick(labels.agentWorking)(event.source);
 }
 
 function agentEventMessage(event: AgentMonitorEvent): string {
   const labels = text().bubble;
-  if (event.kind === "failed") return labels.agentFailed(event.source);
-  if (event.kind === "needs-review") return labels.agentNeedsReview(event.source);
-  return labels.agentComplete(event.source);
+  if (event.kind === "failed") return pick(labels.agentFailed)(event.source);
+  if (event.progressKind === "permission") return pick(labels.agentNeedsPermission)(event.source);
+  if (event.progressKind === "choice") return pick(labels.agentNeedsChoice)(event.source);
+  if (event.kind === "needs-review") return pick(labels.agentNeedsReview)(event.source);
+  return pick(labels.agentComplete)(event.source);
 }
 
 function makeAgentEvent(
@@ -1636,12 +1693,17 @@ function collectCodexSessionEvents(): AgentMonitorEvent[] {
       }
 
       if (payloadType === "function_call" || payloadType === "reasoning") {
+        const callName = stringValue(payload.name);
+        const progressKind = payloadType === "reasoning"
+          ? "thinking"
+          : classifyAgentProgressKind(callName || "正在执行工具", "tool");
         events.push({
           id: `Codex:${file}:${timestampMs}:${payloadType}`,
           source: "Codex",
           sessionKey: `Codex:${file}`,
           kind: "working",
-          message: payloadType === "function_call" ? "正在执行工具" : "正在思考",
+          message: payloadType === "function_call" ? callName || "正在执行工具" : "正在思考",
+          progressKind,
           state: "thinking",
           timestampMs
         });
@@ -1669,6 +1731,7 @@ function collectClaudeSessionEvents(): AgentMonitorEvent[] {
           sessionKey: `Claude Code:${file}`,
           kind: "working",
           message,
+          progressKind: classifyAgentProgressKind(message),
           state: "thinking",
           timestampMs,
           showProgress: false
@@ -1701,6 +1764,7 @@ function collectClaudeSessionEvents(): AgentMonitorEvent[] {
           sessionKey: `Claude Code:${file}`,
           kind: "working",
           message: compactAgentText(text || "正在执行工具"),
+          progressKind: classifyAgentProgressKind(text || "正在执行工具", "tool"),
           state: "thinking",
           timestampMs
         });
@@ -1737,6 +1801,7 @@ function collectClaudeStatusEvents(): AgentMonitorEvent[] {
           sessionKey: `Claude Code:${sessionId}`,
           kind: "complete",
           message: "任务已停下，可以看结果",
+          progressKind: "complete",
           state: "waving",
           timestampMs
         });
@@ -1748,6 +1813,7 @@ function collectClaudeStatusEvents(): AgentMonitorEvent[] {
           sessionKey: `Claude Code:${sessionId}`,
           kind: "working",
           message: "Claude Code 正在处理任务",
+          progressKind: "working",
           state: "thinking",
           timestampMs,
           showProgress: false
@@ -1760,6 +1826,7 @@ function collectClaudeStatusEvents(): AgentMonitorEvent[] {
           sessionKey: `Claude Code:${sessionId}`,
           kind: "failed",
           message: "任务状态变成失败",
+          progressKind: "failed",
           state: "failed",
           timestampMs
         });
@@ -1783,7 +1850,7 @@ function clearAgentPose(restoreState: boolean): void {
   agentPoseActiveState = null;
 }
 
-function showAgentWorkingPose(event: Pick<AgentMonitorEvent, "source" | "message" | "timestampMs">): void {
+function showAgentWorkingPose(event: Pick<AgentMonitorEvent, "source" | "message" | "progressKind" | "timestampMs">): void {
   if (blockingMode || focusActive) return;
   ensurePetWindowVisible();
   if (!petWindow?.isVisible()) return;
