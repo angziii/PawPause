@@ -736,7 +736,7 @@ function createSettingsWindow(): void {
 }
 
 function createTray(): void {
-  tray = new Tray(createTrayImage(runtimeAssetPath(process.platform === "darwin" ? "icon.png" : "tray-icon.png")));
+  tray = new Tray(createTrayImage(runtimeAssetPath(process.platform === "darwin" ? "trayTemplate.png" : "tray-icon.png")));
   tray.setToolTip(APP_NAME);
   tray.on("click", () => {
     tray?.popUpContextMenu();
@@ -1584,10 +1584,19 @@ function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source
   return null;
 }
 
+function agentProgressMessage(event: Pick<AgentMonitorEvent, "source" | "message">): string {
+  const labels = text().bubble;
+  if (/(需要|review|attention|done|完成|停下)/i.test(event.message)) return labels.agentNeedsReview(event.source);
+  if (/(思考|thinking|reasoning)/i.test(event.message)) return labels.agentThinking(event.source);
+  if (/(工具|tool|function_call|executing)/i.test(event.message)) return labels.agentUsingTool(event.source);
+  return labels.agentWorking(event.source);
+}
+
 function agentEventMessage(event: AgentMonitorEvent): string {
-  if (event.kind === "failed") return `${event.source} 遇到问题：${event.message}`;
-  if (event.kind === "needs-review") return `${event.source} 需要你处理：${event.message}`;
-  return `${event.source} 完成了：${event.message}`;
+  const labels = text().bubble;
+  if (event.kind === "failed") return labels.agentFailed(event.source);
+  if (event.kind === "needs-review") return labels.agentNeedsReview(event.source);
+  return labels.agentComplete(event.source);
 }
 
 function makeAgentEvent(
@@ -1788,7 +1797,7 @@ function showAgentWorkingPose(event: Pick<AgentMonitorEvent, "source" | "message
     agentLastProgressBubbleAt = now;
     showBubble({
       id: `agent-progress-${event.timestampMs}`,
-      message: `${event.source}: ${event.message}`,
+      message: agentProgressMessage(event),
       autoDismissMs: 3200
     });
   }

@@ -98,7 +98,13 @@ const CORE_I18N = {
         "你的 Agent 好像完成啦，去看一眼吧",
         "Codex/Claude 那边可能收工了",
         "工作结果出来啦，看看要不要接着处理"
-      ]
+      ],
+      agentWorking: (source: string) => `${source} 正在工作`,
+      agentThinking: (source: string) => `${source} 正在思考`,
+      agentUsingTool: (source: string) => `${source} 正在执行工具`,
+      agentNeedsReview: (source: string) => `${source} 需要你处理`,
+      agentFailed: (source: string) => `${source} 遇到问题`,
+      agentComplete: (source: string) => `${source} 完成了，去看一眼吧`
     },
     actions: {
       breakDone: "我站起来了",
@@ -299,7 +305,13 @@ const CORE_I18N = {
         "Your agent looks done. Take a look?",
         "Codex or Claude may have finished.",
         "The result is ready. Want to review it?"
-      ]
+      ],
+      agentWorking: (source: string) => `${source} is working`,
+      agentThinking: (source: string) => `${source} is thinking`,
+      agentUsingTool: (source: string) => `${source} is using a tool`,
+      agentNeedsReview: (source: string) => `${source} needs your attention`,
+      agentFailed: (source: string) => `${source} ran into a problem`,
+      agentComplete: (source: string) => `${source} looks done. Take a look?`
     },
     actions: {
       breakDone: "I stood up",
@@ -465,7 +477,13 @@ export const I18N = {
       breakReminder: ["長く座りすぎです。1分歩きましょう。"],
       breakRun: [(seconds: number) => `あと ${seconds} 秒です。画面から離れてください。`],
       focusWarning: [(rule: string) => `集中時間です。${rule} は閉じましょう。`],
-      agentDone: ["Agent の作業が終わったようです。確認してください。"]
+      agentDone: ["Agent の作業が終わったようです。確認してください。"],
+      agentWorking: (source: string) => `${source} が作業中です`,
+      agentThinking: (source: string) => `${source} が考えています`,
+      agentUsingTool: (source: string) => `${source} がツールを実行中です`,
+      agentNeedsReview: (source: string) => `${source} の確認が必要です`,
+      agentFailed: (source: string) => `${source} で問題が発生しました`,
+      agentComplete: (source: string) => `${source} が完了したようです。確認してください。`
     },
     actions: {
       breakDone: "立ち上がりました",
@@ -544,7 +562,13 @@ export const I18N = {
       breakReminder: ["오래 앉아 있었어요. 1분만 걸어봐요."],
       breakRun: [(seconds: number) => `${seconds}초 남았어요. 화면에서 잠깐 떨어져요.`],
       focusWarning: [(rule: string) => `집중 시간이에요. ${rule}은 닫아주세요.`],
-      agentDone: ["Agent 작업이 끝난 것 같아요. 확인해보세요."]
+      agentDone: ["Agent 작업이 끝난 것 같아요. 확인해보세요."],
+      agentWorking: (source: string) => `${source} 작업 중이에요`,
+      agentThinking: (source: string) => `${source} 생각 중이에요`,
+      agentUsingTool: (source: string) => `${source} 도구 실행 중이에요`,
+      agentNeedsReview: (source: string) => `${source} 확인이 필요해요`,
+      agentFailed: (source: string) => `${source}에 문제가 생겼어요`,
+      agentComplete: (source: string) => `${source} 작업이 끝난 것 같아요. 확인해보세요.`
     },
     actions: {
       breakDone: "일어났어요",
@@ -598,7 +622,13 @@ export const I18N = {
       breakReminder: ["Llevas mucho tiempo sentado. Camina un minuto."],
       breakRun: [(seconds: number) => `Quedan ${seconds}s. Aléjate de la pantalla.`],
       focusWarning: [(rule: string) => `Es hora de concentrarse. Cierra ${rule}.`],
-      agentDone: ["Tu Agent parece haber terminado. Revísalo."]
+      agentDone: ["Tu Agent parece haber terminado. Revísalo."],
+      agentWorking: (source: string) => `${source} está trabajando`,
+      agentThinking: (source: string) => `${source} está pensando`,
+      agentUsingTool: (source: string) => `${source} está usando una herramienta`,
+      agentNeedsReview: (source: string) => `${source} necesita tu atención`,
+      agentFailed: (source: string) => `${source} tuvo un problema`,
+      agentComplete: (source: string) => `${source} parece haber terminado. Revísalo.`
     },
     actions: {
       breakDone: "Me levanté",
@@ -647,7 +677,13 @@ export const I18N = {
       breakReminder: ["Tu es assis depuis trop longtemps. Marche une minute."],
       breakRun: [(seconds: number) => `Encore ${seconds} s. Éloigne-toi de l'écran.`],
       focusWarning: [(rule: string) => `C'est le moment de se concentrer. Ferme ${rule}.`],
-      agentDone: ["Ton Agent semble avoir terminé. Va vérifier."]
+      agentDone: ["Ton Agent semble avoir terminé. Va vérifier."],
+      agentWorking: (source: string) => `${source} travaille`,
+      agentThinking: (source: string) => `${source} réfléchit`,
+      agentUsingTool: (source: string) => `${source} utilise un outil`,
+      agentNeedsReview: (source: string) => `${source} demande ton attention`,
+      agentFailed: (source: string) => `${source} a rencontré un problème`,
+      agentComplete: (source: string) => `${source} semble avoir terminé. Va vérifier.`
     },
     actions: {
       breakDone: "Je me suis levé",
@@ -696,7 +732,13 @@ export const I18N = {
       breakReminder: ["جلست طويلا. امش دقيقة واحدة."],
       breakRun: [(seconds: number) => `بقيت ${seconds} ثانية. ابتعد عن الشاشة.`],
       focusWarning: [(rule: string) => `حان وقت التركيز. أغلق ${rule}.`],
-      agentDone: ["يبدو أن الوكيل انتهى. تحقق من النتيجة."]
+      agentDone: ["يبدو أن الوكيل انتهى. تحقق من النتيجة."],
+      agentWorking: (source: string) => `${source} يعمل الآن`,
+      agentThinking: (source: string) => `${source} يفكر الآن`,
+      agentUsingTool: (source: string) => `${source} يستخدم أداة`,
+      agentNeedsReview: (source: string) => `${source} يحتاج انتباهك`,
+      agentFailed: (source: string) => `${source} واجه مشكلة`,
+      agentComplete: (source: string) => `${source} انتهى على ما يبدو. تحقق من النتيجة.`
     },
     actions: {
       breakDone: "وقفت",
@@ -745,7 +787,13 @@ export const I18N = {
       breakReminder: ["Du sitzt schon zu lange. Geh eine Minute."],
       breakRun: [(seconds: number) => `Noch ${seconds} s. Weg vom Bildschirm.`],
       focusWarning: [(rule: string) => `Fokuszeit. Bitte ${rule} schließen.`],
-      agentDone: ["Dein Agent scheint fertig zu sein. Schau nach."]
+      agentDone: ["Dein Agent scheint fertig zu sein. Schau nach."],
+      agentWorking: (source: string) => `${source} arbeitet`,
+      agentThinking: (source: string) => `${source} denkt nach`,
+      agentUsingTool: (source: string) => `${source} verwendet ein Tool`,
+      agentNeedsReview: (source: string) => `${source} braucht deine Aufmerksamkeit`,
+      agentFailed: (source: string) => `${source} ist auf ein Problem gestoßen`,
+      agentComplete: (source: string) => `${source} scheint fertig zu sein. Schau nach.`
     },
     actions: {
       breakDone: "Ich bin aufgestanden",
@@ -794,7 +842,13 @@ export const I18N = {
       breakReminder: ["Ты слишком долго сидишь. Пройдись минуту."],
       breakRun: [(seconds: number) => `Осталось ${seconds} с. Отойди от экрана.`],
       focusWarning: [(rule: string) => `Время фокуса. Закрой ${rule}.`],
-      agentDone: ["Похоже, Agent закончил работу. Проверь результат."]
+      agentDone: ["Похоже, Agent закончил работу. Проверь результат."],
+      agentWorking: (source: string) => `${source} работает`,
+      agentThinking: (source: string) => `${source} думает`,
+      agentUsingTool: (source: string) => `${source} использует инструмент`,
+      agentNeedsReview: (source: string) => `${source} требует твоего внимания`,
+      agentFailed: (source: string) => `${source} столкнулся с проблемой`,
+      agentComplete: (source: string) => `${source}, похоже, закончил работу. Проверь результат.`
     },
     actions: {
       breakDone: "Я встал",
