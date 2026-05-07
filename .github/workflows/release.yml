@@ -49,6 +49,17 @@ jobs:
           done
           exit "$missing"
 
+      - name: Normalize macOS signing certificate
+        shell: bash
+        run: |
+          if [[ "$CSC_LINK" == base64://* || "$CSC_LINK" == http://* || "$CSC_LINK" == https://* || -f "$CSC_LINK" ]]; then
+            exit 0
+          fi
+
+          cert_path="$RUNNER_TEMP/developer-id-application.p12"
+          printf "%s" "$CSC_LINK" | base64 -D > "$cert_path"
+          echo "CSC_LINK=$cert_path" >> "$GITHUB_ENV"
+
       - name: Build signed and notarized macOS artifact
         run: pnpm dist:mac:${{ matrix.arch }}
 
