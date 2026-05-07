@@ -114,6 +114,11 @@ const CORE_I18N = {
         (source: string) => `${source} 在用工具查东西`,
         (source: string) => `${source} 正在处理工具结果`
       ],
+      agentSearching: [
+        (source: string) => `${source} 正在搜索`,
+        (source: string) => `${source} 在查找资料`,
+        (source: string) => `${source} 正在检索上下文`
+      ],
       agentRunningScript: [
         (source: string) => `${source} 正在执行脚本`,
         (source: string) => `${source} 在跑命令`,
@@ -272,7 +277,7 @@ const CORE_I18N = {
       detectionErrorHelp: "活动窗口检测暂时失败。请检查权限后，重新开启分心检测或重启应用。",
       detectionPreviewHelp: "正在预览当前活动窗口。开始专注后，命中规则会触发分心提醒。",
       detectionFocusHelp: "专注期间正在检测。命中屏蔽应用或关键词会触发分心提醒。",
-      agentActivityHelp: "监听 Codex 和 Claude Code 的本地会话事件，只在完成、失败或需要处理时提醒。"
+      agentActivityHelp: "监听 Codex、Claude Code 和 DeepSeek TUI 的本地会话事件，只在完成、失败或需要处理时提醒。"
     },
     system: {
       unsupportedDistraction: "分心检测目前仅支持 macOS。"
@@ -359,6 +364,11 @@ const CORE_I18N = {
         (source: string) => `${source} is using a tool`,
         (source: string) => `${source} is checking tool results`,
         (source: string) => `${source} is calling a tool`
+      ],
+      agentSearching: [
+        (source: string) => `${source} is searching`,
+        (source: string) => `${source} is looking things up`,
+        (source: string) => `${source} is gathering context`
       ],
       agentRunningScript: [
         (source: string) => `${source} is running a script`,
@@ -523,7 +533,7 @@ const CORE_I18N = {
       detectionFocusHelp:
         "Watching during Focus. Matched blocked apps or keywords will trigger a distraction nudge.",
       agentActivityHelp:
-        "Watches local Codex and Claude Code session events, and only nudges on completion, failure, or review-needed items."
+        "Watches local Codex, Claude Code, and DeepSeek TUI session events, and only nudges on completion, failure, or review-needed items."
     },
     system: {
       unsupportedDistraction: "Distraction detection currently supports macOS only."
@@ -559,6 +569,7 @@ export const I18N = {
       agentWorking: [(source: string) => `${source} が作業中です`],
       agentThinking: [(source: string) => `${source} が考えています`],
       agentUsingTool: [(source: string) => `${source} がツールを実行中です`],
+      agentSearching: [(source: string) => `${source} が検索中です`],
       agentRunningScript: [(source: string) => `${source} がコマンドを実行中です`],
       agentNeedsChoice: [(source: string) => `${source} で選択が必要です`],
       agentNeedsPermission: [(source: string) => `${source} に権限が必要です`],
@@ -647,6 +658,7 @@ export const I18N = {
       agentWorking: [(source: string) => `${source} 작업 중이에요`],
       agentThinking: [(source: string) => `${source} 생각 중이에요`],
       agentUsingTool: [(source: string) => `${source} 도구 실행 중이에요`],
+      agentSearching: [(source: string) => `${source} 검색 중이에요`],
       agentRunningScript: [(source: string) => `${source} 명령 실행 중이에요`],
       agentNeedsChoice: [(source: string) => `${source} 선택이 필요해요`],
       agentNeedsPermission: [(source: string) => `${source} 권한이 필요해요`],
@@ -710,6 +722,7 @@ export const I18N = {
       agentWorking: [(source: string) => `${source} está trabajando`],
       agentThinking: [(source: string) => `${source} está pensando`],
       agentUsingTool: [(source: string) => `${source} está usando una herramienta`],
+      agentSearching: [(source: string) => `${source} está buscando`],
       agentRunningScript: [(source: string) => `${source} está ejecutando un comando`],
       agentNeedsChoice: [(source: string) => `${source} necesita que elijas`],
       agentNeedsPermission: [(source: string) => `${source} necesita permiso`],
@@ -768,6 +781,7 @@ export const I18N = {
       agentWorking: [(source: string) => `${source} travaille`],
       agentThinking: [(source: string) => `${source} réfléchit`],
       agentUsingTool: [(source: string) => `${source} utilise un outil`],
+      agentSearching: [(source: string) => `${source} recherche`],
       agentRunningScript: [(source: string) => `${source} exécute une commande`],
       agentNeedsChoice: [(source: string) => `${source} attend ton choix`],
       agentNeedsPermission: [(source: string) => `${source} a besoin d'une autorisation`],
@@ -826,6 +840,7 @@ export const I18N = {
       agentWorking: [(source: string) => `${source} يعمل الآن`],
       agentThinking: [(source: string) => `${source} يفكر الآن`],
       agentUsingTool: [(source: string) => `${source} يستخدم أداة`],
+      agentSearching: [(source: string) => `${source} يبحث الآن`],
       agentRunningScript: [(source: string) => `${source} يشغل أمرا`],
       agentNeedsChoice: [(source: string) => `${source} يحتاج اختيارك`],
       agentNeedsPermission: [(source: string) => `${source} يحتاج إذنا`],
@@ -884,6 +899,7 @@ export const I18N = {
       agentWorking: [(source: string) => `${source} arbeitet`],
       agentThinking: [(source: string) => `${source} denkt nach`],
       agentUsingTool: [(source: string) => `${source} verwendet ein Tool`],
+      agentSearching: [(source: string) => `${source} sucht`],
       agentRunningScript: [(source: string) => `${source} führt einen Befehl aus`],
       agentNeedsChoice: [(source: string) => `${source} wartet auf deine Entscheidung`],
       agentNeedsPermission: [(source: string) => `${source} braucht eine Berechtigung`],
@@ -942,6 +958,7 @@ export const I18N = {
       agentWorking: [(source: string) => `${source} работает`],
       agentThinking: [(source: string) => `${source} думает`],
       agentUsingTool: [(source: string) => `${source} использует инструмент`],
+      agentSearching: [(source: string) => `${source} ищет`],
       agentRunningScript: [(source: string) => `${source} выполняет команду`],
       agentNeedsChoice: [(source: string) => `${source} ждет твоего выбора`],
       agentNeedsPermission: [(source: string) => `${source} требуется разрешение`],
@@ -1192,7 +1209,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "アクティブウィンドウ検出に失敗しました。権限を確認してから再度有効化するか、アプリを再起動してください。",
     detectionPreviewHelp: "現在のアクティブウィンドウをプレビュー中です。集中を開始すると一致したルールで通知します。",
     detectionFocusHelp: "集中中に監視しています。ブロック対象のアプリやキーワードに一致すると通知します。",
-    agentActivityHelp: "Codex と Claude Code のローカルセッションイベントを監視し、完了・失敗・確認が必要な時だけ通知します。"
+    agentActivityHelp: "Codex、Claude Code、DeepSeek TUI のローカルセッションイベントを監視し、完了・失敗・確認が必要な時だけ通知します。"
   },
   ko: {
     title: "설정",
@@ -1297,7 +1314,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "활성 창 감지에 실패했습니다. 권한을 확인한 뒤 다시 켜거나 앱을 재시작하세요.",
     detectionPreviewHelp: "현재 활성 창을 미리 보는 중입니다. 집중을 시작하면 일치한 규칙이 방해 알림을 발생시킵니다.",
     detectionFocusHelp: "집중 중 감지하고 있습니다. 차단 앱 또는 키워드와 일치하면 방해 알림을 표시합니다.",
-    agentActivityHelp: "Codex 및 Claude Code 로컬 세션 이벤트를 감시하고 완료, 실패, 확인 필요 상황에서만 알려줍니다."
+    agentActivityHelp: "Codex, Claude Code, DeepSeek TUI 로컬 세션 이벤트를 감시하고 완료, 실패, 확인 필요 상황에서만 알려줍니다."
   },
   es: {
     title: "Ajustes",
@@ -1402,7 +1419,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "La detección de ventana activa falló. Revisa permisos y vuelve a activarla o reinicia la app.",
     detectionPreviewHelp: "Previsualizando la ventana activa. Inicia Enfoque para recibir avisos al coincidir con reglas.",
     detectionFocusHelp: "Vigilando durante el enfoque. Las apps o palabras bloqueadas activarán un aviso.",
-    agentActivityHelp: "Vigila eventos locales de Codex y Claude Code, y solo avisa al terminar, fallar o requerir revisión."
+    agentActivityHelp: "Vigila eventos locales de Codex, Claude Code y DeepSeek TUI, y solo avisa al terminar, fallar o requerir revisión."
   },
   fr: {
     title: "Réglages",
@@ -1507,7 +1524,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "La détection de fenêtre active a échoué. Vérifie les permissions puis réactive-la ou redémarre l'app.",
     detectionPreviewHelp: "Prévisualisation de la fenêtre active. Démarre la concentration pour déclencher les règles correspondantes.",
     detectionFocusHelp: "Surveillance pendant la concentration. Les apps ou mots-clés bloqués déclenchent un rappel.",
-    agentActivityHelp: "Surveille les événements locaux Codex et Claude Code et ne signale que les fins, échecs ou éléments à revoir."
+    agentActivityHelp: "Surveille les événements locaux Codex, Claude Code et DeepSeek TUI et ne signale que les fins, échecs ou éléments à revoir."
   },
   ar: {
     title: "الإعدادات",
@@ -1612,7 +1629,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "فشل كشف النافذة النشطة. تحقق من الأذونات ثم فعّل الكشف أو أعد تشغيل التطبيق.",
     detectionPreviewHelp: "تتم معاينة النافذة النشطة. ابدأ التركيز لتفعيل التنبيهات عند مطابقة القواعد.",
     detectionFocusHelp: "تتم المراقبة أثناء التركيز. التطبيقات أو الكلمات المحظورة ستطلق تنبيهًا.",
-    agentActivityHelp: "يراقب أحداث جلسات Codex و Claude Code المحلية، وينبه فقط عند الاكتمال أو الفشل أو الحاجة إلى مراجعة."
+    agentActivityHelp: "يراقب أحداث جلسات Codex و Claude Code و DeepSeek TUI المحلية، وينبه فقط عند الاكتمال أو الفشل أو الحاجة إلى مراجعة."
   },
   de: {
     title: "Einstellungen",
@@ -1717,7 +1734,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "Aktive Fenstererkennung ist fehlgeschlagen. Prüfe Berechtigungen, aktiviere sie erneut oder starte die App neu.",
     detectionPreviewHelp: "Aktives Fenster wird geprüft. Starte Fokus, damit passende Regeln Hinweise auslösen.",
     detectionFocusHelp: "Überwachung während Fokus. Blockierte Apps oder Keywords lösen einen Hinweis aus.",
-    agentActivityHelp: "Überwacht lokale Codex- und Claude-Code-Sitzungen und meldet nur Abschluss, Fehler oder Review-Bedarf."
+    agentActivityHelp: "Überwacht lokale Codex-, Claude-Code- und DeepSeek-TUI-Sitzungen und meldet nur Abschluss, Fehler oder Review-Bedarf."
   },
   ru: {
     title: "Настройки",
@@ -1822,7 +1839,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "Не удалось определить активное окно. Проверь разрешения, включи проверку снова или перезапусти приложение.",
     detectionPreviewHelp: "Предпросмотр активного окна. Запусти фокус, чтобы совпавшие правила вызывали предупреждения.",
     detectionFocusHelp: "Идет проверка во время фокуса. Блокируемые приложения или слова вызовут предупреждение.",
-    agentActivityHelp: "Следит за локальными событиями Codex и Claude Code и сообщает только о завершении, ошибках или необходимости ревью."
+    agentActivityHelp: "Следит за локальными событиями Codex, Claude Code и DeepSeek TUI и сообщает только о завершении, ошибках или необходимости ревью."
   }
 } as const;
 
