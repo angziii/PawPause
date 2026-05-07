@@ -18,6 +18,8 @@
 
 PawPause ist ein Pixel-Desktop-Begleiter für macOS und Windows. Er bleibt auf deinem Bildschirm, erinnert an Pausen und Wasser, schützt Fokuszeiten und unterstützt Figuren im PetDex-Format.
 
+Local-first: Einstellungen, Statistiken, importierte Begleiter und Fokusverlauf bleiben auf deinem Rechner.
+
 ## Funktionen
 
 - Transparenter, immer sichtbarer und verschiebbarer Pixel-Begleiter

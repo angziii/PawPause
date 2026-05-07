@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  It is local-first: settings, stats, imported companions, and focus history stay on your machine.
+</p>
+
+<p align="center">
   <a href="docs/GLOSSARY.md">Glossary / 术语表</a>
 </p>
 
@@ -32,8 +36,6 @@
 </p>
 
 PawPause is a macOS and Windows desktop companion. It keeps a small pixel friend on your screen, nudges you to take breaks, reminds you to drink water, helps protect focus sessions, and supports PetDex-style companion imports.
-
-It is local-first: settings, stats, imported companions, and focus history stay on your machine.
 
 ## Features
 
@@ -106,6 +108,10 @@ docs/readme/    Localized README pages
 ```
 
 Large companion asset packs are intentionally not committed to keep the repository small. Import or install companions locally instead.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=angziii/PawPause&type=Date)](https://www.star-history.com/#angziii/PawPause&Date)
 
 ## License
 
