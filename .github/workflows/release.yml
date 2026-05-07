@@ -75,7 +75,14 @@ jobs:
           security create-keychain -p "$keychain_password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
           security unlock-keychain -p "$keychain_password" "$keychain"
-          security import "$CSC_LINK" -k "$keychain" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild
+
+          import_log="$RUNNER_TEMP/security-import.log"
+          if ! security import "$CSC_LINK" -k "$keychain" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild > "$import_log" 2>&1; then
+            echo "::error::Failed to import CSC_LINK p12. Verify CSC_KEY_PASSWORD and confirm the secret contains a valid p12."
+            sed -E 's/[A-F0-9]{40}/[HASH]/g' "$import_log" | sed -E 's/"[^"]+"/"[redacted identity]"/g'
+            exit 1
+          fi
+
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain"
 
           existing_keychains="$(security list-keychains -d user | tr -d '"' || true)"
