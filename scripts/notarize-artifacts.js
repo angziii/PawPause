@@ -14,6 +14,11 @@ function appleCredentials() {
 export default async function notarizeMacArtifacts(context) {
   if (process.platform !== "darwin") return [];
 
+  if (process.env.SKIP_NOTARIZE === "1") {
+    console.warn("Skipping macOS artifact notarization: SKIP_NOTARIZE=1.");
+    return [];
+  }
+
   const credentials = appleCredentials();
   if (!credentials) {
     console.warn("Skipping macOS artifact notarization: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, or APPLE_TEAM_ID is missing.");

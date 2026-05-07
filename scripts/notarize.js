@@ -15,6 +15,11 @@ function appleCredentials() {
 export default async function notarizeMacApp(context) {
   if (process.platform !== "darwin" || context.electronPlatformName !== "darwin") return;
 
+  if (process.env.SKIP_NOTARIZE === "1") {
+    console.warn("Skipping macOS app notarization: SKIP_NOTARIZE=1.");
+    return;
+  }
+
   const credentials = appleCredentials();
   if (!credentials) {
     console.warn("Skipping macOS notarization: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, or APPLE_TEAM_ID is missing.");

@@ -67,7 +67,50 @@ jobs:
           echo "CSC_LINK=$cert_path" >> "$GITHUB_ENV"
 
       - name: Build signed and notarized macOS artifact
-        run: pnpm dist:mac:${{ matrix.arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          corepack pnpm build
+          SKIP_NOTARIZE=1 pnpm exec electron-builder --mac --${{ matrix.arch }} --dir --publish never
+
+          app_path="$(find dist -name 'PawPause.app' -type d -print -quit)"
+          if [[ -z "$app_path" ]]; then
+            echo "::error::PawPause.app was not generated"
+            exit 1
+          fi
+
+          app_zip="$RUNNER_TEMP/PawPause-${{ matrix.arch }}.app.zip"
+          ditto -c -k --keepParent "$app_path" "$app_zip"
+
+          echo "Submitting app bundle for notarization..."
+          xcrun notarytool submit "$app_zip" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --timeout 30m
+          xcrun stapler staple "$app_path"
+          xcrun stapler validate "$app_path"
+
+          app_dir="$(dirname "$app_path")"
+          SKIP_NOTARIZE=1 pnpm exec electron-builder --mac dmg zip --${{ matrix.arch }} --prepackaged "$app_dir" --publish never
+
+          dmg_path="$(find dist -name 'PawPause-*-mac-${{ matrix.arch }}.dmg' -type f -print -quit)"
+          if [[ -z "$dmg_path" ]]; then
+            echo "::error::macOS DMG was not generated"
+            exit 1
+          fi
+
+          echo "Submitting DMG for notarization..."
+          xcrun notarytool submit "$dmg_path" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --timeout 30m
+          xcrun stapler staple "$dmg_path"
+          xcrun stapler validate "$dmg_path"
 
       - name: Verify notarized macOS artifact
         shell: bash
