@@ -114,6 +114,11 @@ const CORE_I18N = {
         (source: string) => `${source} 在用工具查东西`,
         (source: string) => `${source} 正在处理工具结果`
       ],
+      agentSearching: [
+        (source: string) => `${source} 正在搜索`,
+        (source: string) => `${source} 在查找资料`,
+        (source: string) => `${source} 正在检索相关内容`
+      ],
       agentRunningScript: [
         (source: string) => `${source} 正在执行脚本`,
         (source: string) => `${source} 在跑命令`,
@@ -272,7 +277,7 @@ const CORE_I18N = {
       detectionErrorHelp: "活动窗口检测暂时失败。请检查权限后，重新开启分心检测或重启应用。",
       detectionPreviewHelp: "正在预览当前活动窗口。开始专注后，命中规则会触发分心提醒。",
       detectionFocusHelp: "专注期间正在检测。命中屏蔽应用或关键词会触发分心提醒。",
-      agentActivityHelp: "监听 Codex 和 Claude Code 的本地会话事件，只在完成、失败或需要处理时提醒。"
+      agentActivityHelp: "监听 Codex、Claude Code 和 DeepSeek TUI 的本地会话事件，只在完成、失败或需要处理时提醒。"
     },
     system: {
       unsupportedDistraction: "分心检测目前仅支持 macOS。"
@@ -359,6 +364,11 @@ const CORE_I18N = {
         (source: string) => `${source} is using a tool`,
         (source: string) => `${source} is checking tool results`,
         (source: string) => `${source} is calling a tool`
+      ],
+      agentSearching: [
+        (source: string) => `${source} is searching`,
+        (source: string) => `${source} is looking things up`,
+        (source: string) => `${source} is checking search results`
       ],
       agentRunningScript: [
         (source: string) => `${source} is running a script`,
@@ -523,7 +533,7 @@ const CORE_I18N = {
       detectionFocusHelp:
         "Watching during Focus. Matched blocked apps or keywords will trigger a distraction nudge.",
       agentActivityHelp:
-        "Watches local Codex and Claude Code session events, and only nudges on completion, failure, or review-needed items."
+        "Watches local Codex, Claude Code, and DeepSeek TUI session events, and only nudges on completion, failure, or review-needed items."
     },
     system: {
       unsupportedDistraction: "Distraction detection currently supports macOS only."

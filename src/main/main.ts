@@ -84,12 +84,13 @@ const AGENT_ACTIVITY_CHECK_INTERVAL_MS = 5000;
 const AGENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
 
-type AgentSource = "Codex" | "Claude Code";
+type AgentSource = "Codex" | "Claude Code" | "DeepSeek TUI";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
 type AgentProgressKind =
   | "working"
   | "thinking"
   | "tool"
+  | "search"
   | "script"
   | "choice"
   | "permission"
@@ -178,6 +179,7 @@ let agentMonitorPrimed = false;
 const agentSeenEventIds = new Set<string>();
 const agentActiveSessions = new Map<string, number>();
 const claudeSessionStatuses = new Map<string, string>();
+const deepSeekSessionMessageCounts = new Map<string, number>();
 let ambientPoseActiveState: PetState | null = null;
 let agentPoseActiveState: PetState | null = null;
 let lastPetLibrarySignature = "";
@@ -1567,7 +1569,14 @@ function scheduleDistractionDetection(): void {
 
 function isAgentLikeWindow(appName: string, title: string): boolean {
   const target = `${appName} ${title}`;
-  return /codex|claude|cursor|terminal|iterm|warp|vscode|visual studio code/i.test(target);
+  return /codex|claude|deepseek|cursor|terminal|iterm|warp|vscode|visual studio code/i.test(target);
+}
+
+function agentSourceFromWindow(appName: string, title: string): AgentSource {
+  const target = `${appName} ${title}`;
+  if (/deepseek/i.test(target)) return "DeepSeek TUI";
+  if (/claude/i.test(target)) return "Claude Code";
+  return "Codex";
 }
 
 function titleLooksBusy(title: string): boolean {
@@ -1601,6 +1610,14 @@ function stringValue(value: unknown): string {
 function eventTimeMs(value: unknown): number {
   const parsed = Date.parse(stringValue(value));
   return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
+function fileTimeMs(path: string): number {
+  try {
+    return statSync(path).mtimeMs;
+  } catch {
+    return Date.now();
+  }
 }
 
 function hashText(input: string): string {
@@ -1700,6 +1717,14 @@ function parseJsonLinesTail(path: string): Array<Record<string, unknown>> {
   }
 }
 
+function readJsonObject(path: string): Record<string, unknown> | null {
+  try {
+    return asRecord(JSON.parse(readFileSync(path, "utf8")));
+  } catch {
+    return null;
+  }
+}
+
 function extractTextFromContent(content: unknown, typeName: string): string {
   if (!Array.isArray(content)) return "";
   return content
@@ -1748,10 +1773,21 @@ function classifyAgentProgressKind(text: string, fallback: AgentProgressKind = "
   if (/(脚本|命令|终端|执行.*(pnpm|npm|yarn|node|python|pytest|tsc|shell)|script|command|terminal|exec_command|write_stdin|running command|shell)/i.test(text)) {
     return "script";
   }
+  if (/(搜索|查找|检索|搜一下|搜索网页|search|web_search|file_search|grep|grep_files|ripgrep|rg\b|find files?)/i.test(text)) {
+    return "search";
+  }
   if (/(工具|调用|tool|function_call)/i.test(text)) return "tool";
   if (/(思考|推理|reasoning|thinking)/i.test(text)) return "thinking";
   if (/(需要|review|attention|done|完成|停下)/i.test(text)) return "review";
   return fallback;
+}
+
+function classifyDeepSeekToolProgressKind(toolName: string): AgentProgressKind {
+  if (/^(exec_shell|run_command|shell|bash|python|node|npm|pnpm|yarn|pytest|tsc)$/i.test(toolName)) {
+    return "script";
+  }
+  if (/(search|grep|ripgrep|rg|find|list_dir|read_file)/i.test(toolName)) return "search";
+  return classifyAgentProgressKind(toolName, "tool");
 }
 
 function classifyAgentText(text: string): Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs"> | null {
@@ -1826,6 +1862,7 @@ function agentProgressMessage(event: Pick<AgentMonitorEvent, "source" | "message
   if (progressKind === "permission") return pick(labels.agentNeedsPermission)(event.source);
   if (progressKind === "choice") return pick(labels.agentNeedsChoice)(event.source);
   if (progressKind === "script") return pick(labels.agentRunningScript)(event.source);
+  if (progressKind === "search") return pick(labels.agentSearching)(event.source);
   if (progressKind === "tool") return pick(labels.agentUsingTool)(event.source);
   if (progressKind === "thinking") return pick(labels.agentThinking)(event.source);
   if (progressKind === "review") return pick(labels.agentNeedsReview)(event.source);
@@ -2024,6 +2061,155 @@ function collectClaudeStatusEvents(): AgentMonitorEvent[] {
   return events;
 }
 
+function deepSeekSessionTimestamp(data: Record<string, unknown>, path: string): number {
+  const metadata = asRecord(data.metadata);
+  const updatedAt = Date.parse(stringValue(metadata?.updated_at));
+  return Number.isFinite(updatedAt) ? updatedAt : fileTimeMs(path);
+}
+
+function collectDeepSeekSessionEvents(): AgentMonitorEvent[] {
+  const sessionsRoot = join(app.getPath("home"), ".deepseek", "sessions");
+  const files = listRecentFiles(sessionsRoot, ".json", 5, 1);
+  const events: AgentMonitorEvent[] = [];
+
+  for (const file of files) {
+    const data = readJsonObject(file);
+    if (!data || !Array.isArray(data.messages)) continue;
+
+    const metadata = asRecord(data.metadata);
+    const sessionId = stringValue(metadata?.id) || file;
+    const sessionKey = `DeepSeek TUI:${sessionId}`;
+    const timestampMs = deepSeekSessionTimestamp(data, file);
+    const previousMessageCount = deepSeekSessionMessageCounts.get(sessionKey) ?? 0;
+    deepSeekSessionMessageCounts.set(sessionKey, data.messages.length);
+
+    const startIndex = Math.max(0, data.messages.length - 16);
+    for (let messageIndex = startIndex; messageIndex < data.messages.length; messageIndex += 1) {
+      const message = asRecord(data.messages[messageIndex]);
+      if (!message || !Array.isArray(message.content)) continue;
+      const role = stringValue(message.role);
+      const isNewUserMessage = previousMessageCount > 0 && messageIndex >= previousMessageCount;
+
+      for (let partIndex = 0; partIndex < message.content.length; partIndex += 1) {
+        const part = asRecord(message.content[partIndex]);
+        if (!part) continue;
+        const partType = stringValue(part.type);
+        const eventBaseId = `DeepSeek TUI:${sessionId}:${messageIndex}:${partIndex}:${partType}`;
+
+        if (role === "assistant" && partType === "thinking") {
+          const thinking = stringValue(part.thinking);
+          events.push({
+            id: `${eventBaseId}:${hashText(thinking)}`,
+            source: "DeepSeek TUI",
+            sessionKey,
+            kind: "working",
+            message: thinking || "DeepSeek TUI 正在思考",
+            progressKind: "thinking",
+            state: "thinking",
+            timestampMs
+          });
+          continue;
+        }
+
+        if (role === "assistant" && partType === "tool_use") {
+          const toolName = stringValue(part.name) || "tool_use";
+          const progressKind = classifyDeepSeekToolProgressKind(toolName);
+          events.push({
+            id: `${eventBaseId}:${toolName}`,
+            source: "DeepSeek TUI",
+            sessionKey,
+            kind: "working",
+            message: toolName,
+            progressKind,
+            state: "thinking",
+            timestampMs
+          });
+          continue;
+        }
+
+        if (role === "assistant" && partType === "text") {
+          const text = stringValue(part.text);
+          const classified = classifyAgentText(text);
+          if (classified) {
+            events.push({
+              ...classified,
+              id: `${eventBaseId}:${classified.kind}:${hashText(text)}`,
+              source: "DeepSeek TUI",
+              sessionKey,
+              timestampMs
+            });
+          }
+          continue;
+        }
+
+        if (role === "user" && partType === "text") {
+          const text = stringValue(part.text);
+          events.push({
+            id: `${eventBaseId}:user-reply:${hashText(text)}`,
+            source: "DeepSeek TUI",
+            sessionKey,
+            kind: "working",
+            message: "用户已回复，DeepSeek TUI 正在继续",
+            progressKind: classifyAgentProgressKind(text),
+            state: "thinking",
+            timestampMs,
+            showProgress: isNewUserMessage
+          });
+          continue;
+        }
+
+        if (role === "user" && partType === "tool_result") {
+          const text = stringValue(part.content);
+          events.push({
+            id: `${eventBaseId}:tool-result:${hashText(stringValue(part.tool_use_id) || text)}`,
+            source: "DeepSeek TUI",
+            sessionKey,
+            kind: "working",
+            message: "DeepSeek TUI 正在读取工具结果",
+            progressKind: classifyAgentProgressKind(text, "tool"),
+            state: "thinking",
+            timestampMs,
+            showProgress: false
+          });
+        }
+      }
+    }
+  }
+
+  return events;
+}
+
+function collectDeepSeekAuditEvents(): AgentMonitorEvent[] {
+  const auditPath = join(app.getPath("home"), ".deepseek", "audit.log");
+  const events: AgentMonitorEvent[] = [];
+
+  for (const line of parseJsonLinesTail(auditPath)) {
+    const eventName = stringValue(line.event);
+    const details = asRecord(line.details);
+    const sessionId = details ? stringValue(details.session_id) : "";
+    if (!sessionId) continue;
+
+    const timestampMs = eventTimeMs(line.ts);
+    const toolName = details ? stringValue(details.tool_name) || "tool" : "tool";
+    const sessionKey = `DeepSeek TUI:${sessionId}`;
+
+    if (eventName === "tool.approval.prompted") {
+      events.push({
+        id: `DeepSeek TUI:audit:${sessionId}:${timestampMs}:permission:${toolName}`,
+        source: "DeepSeek TUI",
+        sessionKey,
+        kind: "needs-review",
+        message: `${toolName} needs approval`,
+        progressKind: "permission",
+        state: "reviewing",
+        timestampMs
+      });
+    }
+  }
+
+  return events;
+}
+
 function clearAgentPose(restoreState: boolean): void {
   if (agentPoseTimer) {
     clearTimeout(agentPoseTimer);
@@ -2101,7 +2287,9 @@ async function checkAgentActivityNow(): Promise<void> {
     const events = [
       ...collectCodexSessionEvents(),
       ...collectClaudeSessionEvents(),
-      ...collectClaudeStatusEvents()
+      ...collectClaudeStatusEvents(),
+      ...collectDeepSeekSessionEvents(),
+      ...collectDeepSeekAuditEvents()
     ]
       .filter((event) => event.timestampMs >= newestAllowedAt && event.timestampMs <= now + 30_000)
       .sort((left, right) => left.timestampMs - right.timestampMs);
@@ -2136,17 +2324,18 @@ async function checkAgentActivityNow(): Promise<void> {
 
     const active = await readActiveWindow().catch(() => null);
     if (!active || !isAgentLikeWindow(active.appName, active.windowTitle)) return;
+    const activeAgentSource = agentSourceFromWindow(active.appName, active.windowTitle);
     if (titleLooksBusy(active.windowTitle)) {
       agentLastWorkingAt = Date.now();
       showAgentWorkingPose({
-        source: "Codex",
+        source: activeAgentSource,
         message: "Agent is working",
         timestampMs: Date.now()
       });
     }
     if (titleLooksDone(active.windowTitle) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
       showAgentWorkingPose({
-        source: "Codex",
+        source: activeAgentSource,
         message: "Agent may need review",
         timestampMs: Date.now()
       });
