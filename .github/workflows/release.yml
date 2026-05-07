@@ -105,7 +105,7 @@ jobs:
           echo "CSC_LINK=" >> "$GITHUB_ENV"
 
       - name: Build signed and notarized macOS artifact
-        run: pnpm dist:mac:${{ matrix.arch }}
+        run: env -u CSC_LINK pnpm dist:mac:${{ matrix.arch }}
 
       - name: Verify notarized macOS artifact
         shell: bash
