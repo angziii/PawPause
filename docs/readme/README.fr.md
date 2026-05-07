@@ -18,6 +18,8 @@
 
 PawPause est un compagnon de bureau pixel art pour macOS et Windows. Il reste sur ton écran, te rappelle de faire des pauses et de boire de l'eau, protège tes sessions de concentration et prend en charge les personnages au format PetDex.
 
+Il est local-first : les réglages, statistiques, compagnons importés et historique de concentration restent sur ta machine.
+
 ## Fonctionnalités
 
 - Compagnon pixel transparent, toujours au premier plan et déplaçable
