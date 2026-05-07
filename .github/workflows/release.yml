@@ -72,7 +72,8 @@ jobs:
           set -euo pipefail
 
           corepack pnpm build
-          SKIP_NOTARIZE=1 pnpm exec electron-builder --mac --${{ matrix.arch }} --dir --publish never
+          env -u APPLE_ID -u APPLE_APP_SPECIFIC_PASSWORD -u APPLE_TEAM_ID \
+            SKIP_NOTARIZE=1 pnpm exec electron-builder --mac --${{ matrix.arch }} --dir --publish never
 
           app_path="$(find dist -name 'PawPause.app' -type d -print -quit)"
           if [[ -z "$app_path" ]]; then
@@ -94,7 +95,8 @@ jobs:
           xcrun stapler validate "$app_path"
 
           app_dir="$(dirname "$app_path")"
-          SKIP_NOTARIZE=1 pnpm exec electron-builder --mac dmg zip --${{ matrix.arch }} --prepackaged "$app_dir" --publish never
+          env -u APPLE_ID -u APPLE_APP_SPECIFIC_PASSWORD -u APPLE_TEAM_ID \
+            SKIP_NOTARIZE=1 pnpm exec electron-builder --mac dmg zip --${{ matrix.arch }} --prepackaged "$app_dir" --publish never
 
           dmg_path="$(find dist -name 'PawPause-*-mac-${{ matrix.arch }}.dmg' -type f -print -quit)"
           if [[ -z "$dmg_path" ]]; then
