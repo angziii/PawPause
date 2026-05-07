@@ -26,7 +26,7 @@ PawPause は macOS / Windows 向けのピクセルデスクトップ相棒です
 - 休憩リマインダーと任意の画面ブロック休憩
 - 水分補給リマインダーと履歴統計
 - macOS のアクティブウィンドウ検出による気晴らし通知
-- Codex / Claude Code のローカル完了通知
+- Codex / Claude Code / DeepSeek TUI の思考、検索、コマンド実行、権限待ち、完了をローカル通知
 - `pet.json + spritesheet.webp/png` パッケージのインポート
 - `~/.codex/pets` の PetDex キャラクターを自動読み込み
 - 9 言語 UI とシステムのダークモード対応

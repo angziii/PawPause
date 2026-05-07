@@ -26,7 +26,7 @@ PawPause 是一款 macOS / Windows 桌面陪伴应用。它让像素小伙伴常
 - 休息提醒和可选挡屏休息模式
 - 喝水提醒和历史统计
 - macOS 分心检测：命中屏蔽应用或关键词时提醒
-- Codex / Claude Code 本地会话完成提醒
+- Codex / Claude Code / DeepSeek TUI 本地会话动态：思考、搜索、执行命令、需要权限和任务完成提醒
 - 应用内导入 `pet.json + spritesheet.webp/png` 角色包
 - 自动读取 `~/.codex/pets` 中的 PetDex 角色
 - 支持九种语言和系统深色模式

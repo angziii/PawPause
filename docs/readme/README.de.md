@@ -26,7 +26,7 @@ Local-first: Einstellungen, Statistiken, importierte Begleiter und Fokusverlauf 
 - Pausenerinnerungen und optionaler Bildschirmblock
 - Wassererinnerungen mit Verlauf
 - macOS-Ablenkungserkennung nach App oder Schlüsselwort
-- Lokale Codex / Claude-Code-Hinweise bei Abschluss oder Review-Bedarf
+- Lokale Hinweise für Codex / Claude Code / DeepSeek TUI: Denken, Suche, Befehle, Berechtigungen und Abschluss
 - Import von `pet.json + spritesheet.webp/png` Paketen
 - Automatisches Lesen von PetDex-Figuren in `~/.codex/pets`
 - Oberfläche in 9 Sprachen und System-Dunkelmodus
