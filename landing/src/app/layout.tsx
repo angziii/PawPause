@@ -9,11 +9,11 @@ export const metadata: Metadata = {
   ),
   title: "PawPause - Pixel desktop companion",
   description:
-    "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code activity nudges.",
+    "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code / DeepSeek TUI activity nudges.",
   openGraph: {
     title: "PawPause - Pixel desktop companion",
     description:
-      "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code activity nudges.",
+      "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code / DeepSeek TUI activity nudges.",
     images: ["/social-preview.png"],
   },
 };

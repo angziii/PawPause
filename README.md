@@ -43,7 +43,7 @@ PawPause is a macOS and Windows desktop companion. It keeps a small pixel friend
 - **Break intervention**: optional screen-block break mode when a reminder is easy to ignore.
 - **Hydration reminders**: water reminders with daily and historical stats.
 - **Focus mode**: macOS active-window detection can trigger full-screen distraction nudges for blocked apps or keywords.
-- **Agent activity alerts**: local Codex / Claude Code session events can trigger completion, failure, review-needed, and progress nudges.
+- **Agent activity alerts**: local Codex / Claude Code / DeepSeek TUI events can show thinking, search, command execution, permission requests, completion, failure, and review-needed nudges.
 - **Pet imports**: import `pet.json + spritesheet.webp/png` folders or zip packages in the app.
 - **PetDex compatibility**: PawPause reads companions installed to `~/.codex/pets`.
 - **Multilingual UI**: English, Chinese, Japanese, Korean, French, German, Russian, Arabic, and Spanish.
