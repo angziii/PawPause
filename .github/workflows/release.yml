@@ -135,7 +135,7 @@ jobs:
           fi
 
           xcrun stapler validate "$dmg_path"
-          spctl --assess --type open --verbose=4 "$dmg_path"
+          spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg_path"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
