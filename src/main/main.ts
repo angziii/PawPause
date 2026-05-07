@@ -2089,6 +2089,8 @@ function collectDeepSeekSessionEvents(): AgentMonitorEvent[] {
       if (!message || !Array.isArray(message.content)) continue;
       const role = stringValue(message.role);
       const isNewUserMessage = previousMessageCount > 0 && messageIndex >= previousMessageCount;
+      const isNewAssistantMessage = previousMessageCount > 0 && role === "assistant" && messageIndex >= previousMessageCount;
+      const messageHasToolUse = message.content.some((part) => asRecord(part)?.type === "tool_use");
 
       for (let partIndex = 0; partIndex < message.content.length; partIndex += 1) {
         const part = asRecord(message.content[partIndex]);
@@ -2136,6 +2138,17 @@ function collectDeepSeekSessionEvents(): AgentMonitorEvent[] {
               id: `${eventBaseId}:${classified.kind}:${hashText(text)}`,
               source: "DeepSeek TUI",
               sessionKey,
+              timestampMs
+            });
+          } else if (isNewAssistantMessage && text.trim() && !messageHasToolUse) {
+            events.push({
+              id: `${eventBaseId}:turn-complete:${hashText(text)}`,
+              source: "DeepSeek TUI",
+              sessionKey,
+              kind: "complete",
+              message: compactAgentText(text),
+              progressKind: "complete",
+              state: "waving",
               timestampMs
             });
           }
