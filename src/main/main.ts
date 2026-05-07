@@ -71,6 +71,7 @@ const MIN_PET_SCALE = 0.3;
 const MAX_PET_SCALE = 1.5;
 const PET_VISUAL_BASE_SCALE = 0.88;
 const PET_WINDOW_PADDING = 52;
+const PET_SHELL_PADDING = 4;
 const BUBBLE_WINDOW_WIDTH = 300;
 const BUBBLE_RENDER_WIDTH = 276;
 const BUBBLE_WINDOW_EXTRA_HEIGHT = 190;
@@ -157,6 +158,7 @@ let breakRunFormatter: ((seconds: number) => string) | null = null;
 let nextBreakRunTurnAt = 0;
 let breakMutedToday = false;
 let dragOffset: PetPosition = { x: 0, y: 0 };
+let dragPetGrabOffset: PetPosition | null = null;
 let currentBubble: SpeechBubble | null = null;
 let petLayout: PetLayout = {
   petOffsetX: 0,
@@ -531,9 +533,9 @@ function hideBubble(): void {
     bubbleTimer = null;
   }
   currentBubble = null;
-  sendToPet("pet:hide-bubble");
   resizePetWindowForScale(getSettings().petScale);
   sendPetLayout();
+  sendToPet("pet:hide-bubble");
 }
 
 function rendererUrl(route: "pet" | "settings"): string {
@@ -611,10 +613,46 @@ function persistPetPosition(): void {
   store.set("petPosition", { x: compactBounds.x, y: compactBounds.y });
 }
 
+function petTopYForBounds(
+  bounds: Pick<Electron.Rectangle, "y" | "height">,
+  scale = getSettings().petScale
+): number {
+  return bounds.y + bounds.height - PET_SHELL_PADDING - visiblePetSize(scale).height;
+}
+
+function dragBoundsForCursor(cursor: PetPosition, scale = getSettings().petScale): Electron.Rectangle {
+  const nextSize = petWindowSize(scale);
+  const petSize = visiblePetSize(scale);
+  const grabOffset = dragPetGrabOffset ?? dragOffset;
+  const petAnchorX = cursor.x - grabOffset.x;
+  const petTopY = cursor.y - grabOffset.y;
+  const bounds = clampBoundsToWorkArea({
+    ...nextSize,
+    x: Math.round(petAnchorX - nextSize.width / 2),
+    y: Math.round(petTopY - (nextSize.height - PET_SHELL_PADDING - petSize.height))
+  });
+  petLayout = layoutForPetAnchor(bounds, petAnchorX);
+  return bounds;
+}
+
 function resizePetWindowForScale(scale: number): void {
   if (!petWindow || petWindow.isDestroyed()) return;
   if (blockingMode === "breakRun" || blockingMode === "focusWarning") {
     petLayout = layoutForPetAnchor(petWindow.getBounds());
+    sendPetLayout();
+    return;
+  }
+  if (dragTimer || dragSafetyTimer) {
+    const current = petWindow.getBounds();
+    const nextBounds = dragBoundsForCursor(screen.getCursorScreenPoint(), scale);
+    if (
+      current.width !== nextBounds.width ||
+      current.height !== nextBounds.height ||
+      current.x !== nextBounds.x ||
+      current.y !== nextBounds.y
+    ) {
+      petWindow.setBounds(nextBounds);
+    }
     sendPetLayout();
     return;
   }
@@ -872,22 +910,31 @@ function showPetContextMenu(): void {
 function movePetWithCursor(): void {
   if (!petWindow || petWindow.isDestroyed()) return;
   const cursor = screen.getCursorScreenPoint();
-  const size = petWindowSize();
-  const bounds = clampBoundsToWorkArea({
-    ...size,
-    x: cursor.x - dragOffset.x,
-    y: cursor.y - dragOffset.y
-  });
+  const bounds = dragPetGrabOffset
+    ? dragBoundsForCursor(cursor)
+    : clampBoundsToWorkArea({
+        ...petWindowSize(),
+        x: cursor.x - dragOffset.x,
+        y: cursor.y - dragOffset.y
+      });
   petWindow.setBounds(bounds);
+  if (dragPetGrabOffset) sendPetLayout();
 }
 
 function startPetDrag(offset: { offsetX: number; offsetY: number }): void {
   if (blockingMode === "breakRun" || !petWindow || petWindow.isDestroyed()) return;
   stopAmbientRoam(false);
   stopAmbientPose(true);
+  const bounds = petWindow.getBounds();
+  const cursor = screen.getCursorScreenPoint();
+  const petAnchorX = bounds.x + bounds.width / 2 + petLayout.petOffsetX;
   dragOffset = {
-    x: Math.min(Math.max(Math.round(offset.offsetX), 0), petWindow.getBounds().width),
-    y: Math.min(Math.max(Math.round(offset.offsetY), 0), petWindow.getBounds().height)
+    x: Math.min(Math.max(Math.round(offset.offsetX), 0), bounds.width),
+    y: Math.min(Math.max(Math.round(offset.offsetY), 0), bounds.height)
+  };
+  dragPetGrabOffset = {
+    x: Math.round(cursor.x - petAnchorX),
+    y: Math.round(cursor.y - petTopYForBounds(bounds))
   };
   if (dragTimer) clearInterval(dragTimer);
   if (dragSafetyTimer) clearTimeout(dragSafetyTimer);
@@ -906,6 +953,7 @@ function stopPetDrag(): void {
     clearTimeout(dragSafetyTimer);
     dragSafetyTimer = null;
   }
+  dragPetGrabOffset = null;
   if (wasDragging) {
     persistPetPosition();
     sendToAll("app:snapshot", snapshot());
