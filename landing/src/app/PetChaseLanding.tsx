@@ -10,7 +10,6 @@ const petdexUrl = "https://petdex.crafter.run/zh";
 const links = [
   { id: "download", href: latestReleaseUrl, primary: true },
   { id: "github", href: repoUrl },
-  { id: "releases", href: latestReleaseUrl },
   { id: "petdex", href: petdexUrl },
 ];
 
@@ -45,7 +44,7 @@ const languageOptions: Array<{ value: Language; label: string }> = [
 const copies: Record<Language, LandingCopy> = {
   "zh-CN": {
     languageLabel: "语言",
-    nav: { download: "下载", github: "GitHub", releases: "版本", petdex: "PetDex" },
+    nav: { download: "下载", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
     hero: "让电子宠物住进桌面：提醒休息、喝水、保持专注，也能在 Codex / Claude Code / DeepSeek TUI 工作时给你动态提示。",
     localFirst: "本地优先，不需要账号。",
@@ -68,7 +67,7 @@ const copies: Record<Language, LandingCopy> = {
   },
   en: {
     languageLabel: "Language",
-    nav: { download: "Download", github: "GitHub", releases: "Releases", petdex: "PetDex" },
+    nav: { download: "Download", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
     hero: "A pixel companion for breaks, water, focus, and live Codex, Claude Code, and DeepSeek TUI activity nudges.",
     localFirst: "Local first. No account needed.",
@@ -91,9 +90,9 @@ const copies: Record<Language, LandingCopy> = {
   },
   ja: {
     languageLabel: "言語",
-    nav: { download: "入手", github: "GitHub", releases: "リリース", petdex: "PetDex" },
+    nav: { download: "入手", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "休憩・水分補給・集中を支え、Codex / Claude Code の作業状況も知らせるピクセル相棒です。",
+    hero: "休憩・水分補給・集中を支え、Codex / Claude Code / DeepSeek TUI の作業状況も知らせるピクセル相棒です。",
     localFirst: "ローカル優先。アカウント不要。",
     petdexLine1: "Codex ペット形式に対応。",
     petdexLine2: "追加キャラクターは PetDex コミュニティから入手できます。",
@@ -114,9 +113,9 @@ const copies: Record<Language, LandingCopy> = {
   },
   ko: {
     languageLabel: "언어",
-    nav: { download: "다운로드", github: "GitHub", releases: "릴리스", petdex: "PetDex" },
+    nav: { download: "다운로드", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "휴식, 물 마시기, 집중을 돕고 Codex / Claude Code 작업 상태도 알려주는 픽셀 동반자입니다.",
+    hero: "휴식, 물 마시기, 집중을 돕고 Codex / Claude Code / DeepSeek TUI 작업 상태도 알려주는 픽셀 동반자입니다.",
     localFirst: "로컬 우선. 계정이 필요 없어요.",
     petdexLine1: "Codex 펫 형식과 호환됩니다.",
     petdexLine2: "PetDex 커뮤니티에서 더 받을 수 있어요.",
@@ -137,9 +136,9 @@ const copies: Record<Language, LandingCopy> = {
   },
   es: {
     languageLabel: "Idioma",
-    nav: { download: "Descargar", github: "GitHub", releases: "Versiones", petdex: "PetDex" },
+    nav: { download: "Descargar", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Una mascota pixel para pausas, agua, concentración y avisos en vivo de Codex / Claude Code.",
+    hero: "Una mascota pixel para pausas, agua, concentración y avisos en vivo de Codex / Claude Code / DeepSeek TUI.",
     localFirst: "Primero local. Sin cuenta.",
     petdexLine1: "Compatible con el formato de mascotas de Codex.",
     petdexLine2: "Descarga más en PetDex.",
@@ -160,9 +159,9 @@ const copies: Record<Language, LandingCopy> = {
   },
   fr: {
     languageLabel: "Langue",
-    nav: { download: "Télécharger", github: "GitHub", releases: "Versions", petdex: "PetDex" },
+    nav: { download: "Télécharger", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Un compagnon pixel pour les pauses, l'eau, la concentration et les alertes Codex / Claude Code.",
+    hero: "Un compagnon pixel pour les pauses, l'eau, la concentration et les alertes Codex / Claude Code / DeepSeek TUI.",
     localFirst: "Local d'abord. Aucun compte requis.",
     petdexLine1: "Compatible avec le format de compagnon Codex.",
     petdexLine2: "Télécharge d'autres personnages sur PetDex.",
@@ -183,9 +182,9 @@ const copies: Record<Language, LandingCopy> = {
   },
   de: {
     languageLabel: "Sprache",
-    nav: { download: "Download", github: "GitHub", releases: "Versionen", petdex: "PetDex" },
+    nav: { download: "Download", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Ein Pixel-Begleiter für Pausen, Wasser, Fokus und Live-Hinweise von Codex / Claude Code.",
+    hero: "Ein Pixel-Begleiter für Pausen, Wasser, Fokus und Live-Hinweise von Codex / Claude Code / DeepSeek TUI.",
     localFirst: "Lokal zuerst. Kein Konto nötig.",
     petdexLine1: "Kompatibel mit dem Codex-Pet-Format.",
     petdexLine2: "Weitere Figuren gibt es bei PetDex.",
@@ -206,9 +205,9 @@ const copies: Record<Language, LandingCopy> = {
   },
   ru: {
     languageLabel: "Язык",
-    nav: { download: "Скачать", github: "GitHub", releases: "Релизы", petdex: "PetDex" },
+    nav: { download: "Скачать", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Пиксельный помощник для пауз, воды, фокуса и статусов Codex / Claude Code.",
+    hero: "Пиксельный помощник для пауз, воды, фокуса и статусов Codex / Claude Code / DeepSeek TUI.",
     localFirst: "Локально в первую очередь. Аккаунт не нужен.",
     petdexLine1: "Совместим с форматом питомцев Codex.",
     petdexLine2: "Больше персонажей есть в PetDex.",
@@ -230,9 +229,9 @@ const copies: Record<Language, LandingCopy> = {
   ar: {
     dir: "rtl",
     languageLabel: "اللغة",
-    nav: { download: "تنزيل", github: "GitHub", releases: "الإصدارات", petdex: "PetDex" },
+    nav: { download: "تنزيل", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "رفيق بكسل للتوقفات وشرب الماء والتركيز وتنبيهات Codex / Claude Code الحية.",
+    hero: "رفيق بكسل للتوقفات وشرب الماء والتركيز وتنبيهات Codex / Claude Code / DeepSeek TUI الحية.",
     localFirst: "محلي أولا. لا تحتاج حسابا.",
     petdexLine1: "متوافق مع تنسيق حيوانات Codex.",
     petdexLine2: "حمّل المزيد من مجتمع PetDex.",
@@ -289,10 +288,17 @@ const pets: PetDefinition[] = [
 
 export default function PetChaseLanding() {
   const reactionTimer = useRef<number | null>(null);
+  const topbarRef = useRef<HTMLElement | null>(null);
+  const languageMenuRef = useRef<HTMLDivElement | null>(null);
   const [language, setLanguage] = useState<Language>("en");
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const [starCountLabel, setStarCountLabel] = useState("...");
   const [activePet, setActivePet] = useState<{ slug: string; promptIndex: number } | null>(null);
   const copy = copies[language];
   const [petdexPrefix, petdexSuffix] = copy.petdexLine2.split("PetDex");
+  const primaryMobileLinks = links.filter((link) => link.id === "github" || link.id === "petdex");
+  const secondaryMobileLinks = links.filter((link) => link.id !== "github" && link.id !== "petdex");
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -304,6 +310,108 @@ export default function PetChaseLanding() {
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    let timer: number | null = null;
+
+    const loadStars = async () => {
+      try {
+        const response = await fetch("https://api.github.com/repos/angziii/PawPause", {
+          headers: { Accept: "application/vnd.github+json" },
+        });
+        if (!response.ok) return;
+        const data = (await response.json()) as { stargazers_count?: number };
+        const count = data.stargazers_count;
+        if (isCancelled || typeof count !== "number") return;
+        const label = new Intl.NumberFormat("en", { notation: "compact" }).format(count);
+        setStarCountLabel(label);
+      } catch {
+        if (!isCancelled) setStarCountLabel("...");
+      }
+      if (!isCancelled) {
+        timer = window.setTimeout(loadStars, 60000);
+      }
+    };
+
+    void loadStars();
+    return () => {
+      isCancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLanguageMenuOpen && !isMobileNavOpen) return;
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (topbarRef.current && !topbarRef.current.contains(target)) {
+        setIsMobileNavOpen(false);
+        setIsLanguageMenuOpen(false);
+        return;
+      }
+      if (isLanguageMenuOpen && languageMenuRef.current && !languageMenuRef.current.contains(target)) {
+        setIsLanguageMenuOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileNavOpen(false);
+        setIsLanguageMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isLanguageMenuOpen, isMobileNavOpen]);
+
+  const renderLanguagePicker = (extraClassName = "") => (
+    <div className={`language-picker ${extraClassName}`.trim()} ref={languageMenuRef}>
+      <button
+        type="button"
+        className="language-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={isLanguageMenuOpen}
+        aria-label={copy.languageLabel}
+        onClick={() => setIsLanguageMenuOpen((open) => !open)}
+      >
+        <span>{copy.languageLabel}</span>
+        <span className="language-current">
+          {languageOptions.find((option) => option.value === language)?.label ?? language}
+        </span>
+        <span className={isLanguageMenuOpen ? "language-caret is-open" : "language-caret"}>▾</span>
+      </button>
+      <ul
+        className={isLanguageMenuOpen ? "language-menu is-open" : "language-menu"}
+        role="listbox"
+        aria-label={copy.languageLabel}
+      >
+        {languageOptions.map((option) => (
+          <li key={option.value}>
+            <button
+              type="button"
+              role="option"
+              aria-selected={option.value === language}
+              className={option.value === language ? "language-option is-active" : "language-option"}
+              onClick={() => {
+                setLanguage(resolveLanguage(option.value));
+                setIsLanguageMenuOpen(false);
+                setIsMobileNavOpen(false);
+              }}
+            >
+              {option.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 
   const reactToPet = (slug: string, index: number) => {
     if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
@@ -317,32 +425,105 @@ export default function PetChaseLanding() {
   return (
     <main className="page-shell" dir={copy.dir ?? "ltr"}>
       <section className="hero-stage" aria-label="PawPause interactive pet playground">
-        <nav className="topbar" aria-label="PawPause links">
-          {links.map((link) => (
-            <a
-              className={link.primary ? "nav-link nav-link--primary" : "nav-link"}
-              href={link.href}
-              key={link.id}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {copy.nav[link.id]}
-            </a>
-          ))}
-          <label className="language-picker">
-            <span>{copy.languageLabel}</span>
-            <select
-              aria-label={copy.languageLabel}
-              value={language}
-              onChange={(event) => setLanguage(resolveLanguage(event.target.value))}
-            >
-              {languageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+        <nav className="topbar" aria-label="PawPause links" ref={topbarRef}>
+          <div className="desktop-nav-links">
+            {links.map((link) => (
+              <a
+                className={link.primary ? "nav-link nav-link--primary" : "nav-link"}
+                href={link.href}
+                key={link.id}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={link.id === "github" ? `${copy.nav[link.id]} stars ${starCountLabel}` : undefined}
+              >
+                {link.id === "github" ? (
+                  <span className="github-inline-stars" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="github-inline-logo" focusable="false">
+                      <path
+                        d="M12 .5a12 12 0 0 0-3.79 23.39c.6.1.82-.25.82-.57l-.01-2.01c-3.34.72-4.04-1.42-4.04-1.42-.55-1.37-1.33-1.73-1.33-1.73-1.1-.74.08-.73.08-.73 1.21.09 1.85 1.22 1.85 1.22 1.08 1.82 2.83 1.3 3.52.99.11-.77.42-1.3.77-1.59-2.67-.3-5.47-1.31-5.47-5.82 0-1.28.46-2.33 1.22-3.15-.12-.3-.53-1.52.11-3.16 0 0 .99-.31 3.24 1.2a11.3 11.3 0 0 1 5.9 0c2.25-1.51 3.24-1.2 3.24-1.2.64 1.64.23 2.86.11 3.16.76.82 1.22 1.87 1.22 3.15 0 4.52-2.8 5.51-5.48 5.81.43.37.82 1.09.82 2.2l-.01 3.26c0 .32.22.68.83.57A12 12 0 0 0 12 .5Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    <svg viewBox="0 0 24 24" className="github-inline-star-icon" focusable="false">
+                      <path
+                        d="M12 3.2 14.89 9l6.41.93-4.65 4.52 1.1 6.39L12 17.8l-5.75 3.04 1.1-6.39L2.7 9.93 9.11 9 12 3.2Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    <span>{starCountLabel}</span>
+                  </span>
+                ) : (
+                  copy.nav[link.id]
+                )}
+              </a>
+            ))}
+            {renderLanguagePicker()}
+          </div>
+          <div className="mobile-nav">
+            <div className="mobile-nav-row">
+              {primaryMobileLinks.map((link) => (
+                <a
+                  className={
+                    link.primary
+                      ? "nav-link nav-link--primary"
+                      : link.id === "github"
+                        ? "nav-link mobile-star-link"
+                        : "nav-link"
+                  }
+                  href={link.href}
+                  key={link.id}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {link.id === "github" ? (
+                    <span className="github-inline-stars" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" className="github-inline-logo" focusable="false">
+                        <path
+                          d="M12 .5a12 12 0 0 0-3.79 23.39c.6.1.82-.25.82-.57l-.01-2.01c-3.34.72-4.04-1.42-4.04-1.42-.55-1.37-1.33-1.73-1.33-1.73-1.1-.74.08-.73.08-.73 1.21.09 1.85 1.22 1.85 1.22 1.08 1.82 2.83 1.3 3.52.99.11-.77.42-1.3.77-1.59-2.67-.3-5.47-1.31-5.47-5.82 0-1.28.46-2.33 1.22-3.15-.12-.3-.53-1.52.11-3.16 0 0 .99-.31 3.24 1.2a11.3 11.3 0 0 1 5.9 0c2.25-1.51 3.24-1.2 3.24-1.2.64 1.64.23 2.86.11 3.16.76.82 1.22 1.87 1.22 3.15 0 4.52-2.8 5.51-5.48 5.81.43.37.82 1.09.82 2.2l-.01 3.26c0 .32.22.68.83.57A12 12 0 0 0 12 .5Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                      <svg viewBox="0 0 24 24" className="github-inline-star-icon" focusable="false">
+                        <path
+                          d="M12 3.2 14.89 9l6.41.93-4.65 4.52 1.1 6.39L12 17.8l-5.75 3.04 1.1-6.39L2.7 9.93 9.11 9 12 3.2Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                      <span>{starCountLabel}</span>
+                    </span>
+                  ) : (
+                    copy.nav[link.id]
+                  )}
+                </a>
               ))}
-            </select>
-          </label>
+              <button
+                type="button"
+                className={isMobileNavOpen ? "mobile-nav-toggle is-open" : "mobile-nav-toggle"}
+                aria-label="Toggle more links"
+                aria-expanded={isMobileNavOpen}
+                onClick={() => {
+                  setIsMobileNavOpen((open) => !open);
+                  setIsLanguageMenuOpen(false);
+                }}
+              >
+                ▾
+              </button>
+            </div>
+            <div className={isMobileNavOpen ? "mobile-nav-panel is-open" : "mobile-nav-panel"}>
+              {secondaryMobileLinks.map((link) => (
+                <a
+                  className="mobile-panel-link"
+                  href={link.href}
+                  key={link.id}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {copy.nav[link.id]}
+                </a>
+              ))}
+              {renderLanguagePicker("language-picker--panel")}
+            </div>
+          </div>
         </nav>
 
         <div className="hero-copy">
