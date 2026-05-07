@@ -66,46 +66,8 @@ jobs:
 
           echo "CSC_LINK=$cert_path" >> "$GITHUB_ENV"
 
-      - name: Import and verify Developer ID identity
-        shell: bash
-        run: |
-          keychain="$RUNNER_TEMP/pawpause-signing.keychain-db"
-          keychain_password="$(openssl rand -base64 32)"
-
-          security create-keychain -p "$keychain_password" "$keychain"
-          security set-keychain-settings -lut 21600 "$keychain"
-          security unlock-keychain -p "$keychain_password" "$keychain"
-
-          import_log="$RUNNER_TEMP/security-import.log"
-          if ! security import "$CSC_LINK" -k "$keychain" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild > "$import_log" 2>&1; then
-            echo "::error::Failed to import CSC_LINK p12. Verify CSC_KEY_PASSWORD and confirm the secret contains a valid p12."
-            sed -E 's/[A-F0-9]{40}/[HASH]/g' "$import_log" | sed -E 's/"[^"]+"/"[redacted identity]"/g'
-            exit 1
-          fi
-
-          partition_log="$RUNNER_TEMP/security-partition.log"
-          if ! security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" > "$partition_log" 2>&1; then
-            echo "::error::Failed to unlock the imported code signing key for codesign."
-            sed -E 's/[A-F0-9]{40}/[HASH]/g' "$partition_log" | sed -E 's/"[^"]+"/"[redacted identity]"/g'
-            exit 1
-          fi
-
-          existing_keychains="$(security list-keychains -d user | tr -d '"' || true)"
-          security list-keychains -d user -s "$keychain" $existing_keychains
-
-          identities="$(security find-identity -v -p codesigning "$keychain" || true)"
-          if ! grep -q "Developer ID Application" <<< "$identities"; then
-            echo "::error::CSC_LINK must be a p12 containing a Developer ID Application certificate and its private key. Also verify CSC_KEY_PASSWORD matches that p12."
-            echo "$identities" | sed -E 's/[A-F0-9]{40}/[HASH]/g' | sed -E 's/"[^"]+"/"[redacted identity]"/g'
-            exit 1
-          fi
-
-          echo "Developer ID Application identity found in the temporary signing keychain."
-          echo "CSC_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
-          echo "CSC_LINK=" >> "$GITHUB_ENV"
-
       - name: Build signed and notarized macOS artifact
-        run: env -u CSC_LINK pnpm dist:mac:${{ matrix.arch }}
+        run: pnpm dist:mac:${{ matrix.arch }}
 
       - name: Verify notarized macOS artifact
         shell: bash
