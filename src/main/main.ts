@@ -24,6 +24,7 @@ import type {
   Settings,
   StatsHistory,
   SpeechBubble,
+  SpeechBubbleFrame,
   TodayStats
 } from "../shared/types";
 import {
@@ -75,6 +76,7 @@ const PET_SHELL_PADDING = 4;
 const BUBBLE_WINDOW_WIDTH = 300;
 const BUBBLE_RENDER_WIDTH = 276;
 const BUBBLE_WINDOW_EXTRA_HEIGHT = 190;
+const BUBBLE_WINDOW_HEIGHT = BUBBLE_WINDOW_EXTRA_HEIGHT;
 const AMBIENT_ROAM_TICK_MS = 16;
 const AMBIENT_POSE_MIN_DELAY_MS = 12_000;
 const AMBIENT_POSE_MAX_DELAY_MS = 55_000;
@@ -118,6 +120,7 @@ const store = new Store<StoreSchema>({
 });
 
 let petWindow: BrowserWindow | null = null;
+let bubbleWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let petState: PetState = "idle";
@@ -159,6 +162,7 @@ let breakMutedToday = false;
 let dragOffset: PetPosition = { x: 0, y: 0 };
 let dragPetGrabOffset: PetPosition | null = null;
 let currentBubble: SpeechBubble | null = null;
+let embeddedBubbleVisible = false;
 let petLayout: PetLayout = {
   petOffsetX: 0,
   bubbleAnchorX: 0,
@@ -219,12 +223,6 @@ function visiblePetSize(scale: number): Pick<Electron.Rectangle, "width" | "heig
 
 function petWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
   const petSize = visiblePetSize(scale);
-  if (currentBubble) {
-    return {
-      width: Math.max(BUBBLE_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING * 2),
-      height: petSize.height + BUBBLE_WINDOW_EXTRA_HEIGHT
-    };
-  }
   return {
     width: Math.max(44, petSize.width + PET_WINDOW_PADDING),
     height: Math.max(48, petSize.height + PET_WINDOW_PADDING)
@@ -463,8 +461,14 @@ function sendToPet<T>(channel: string, payload?: T): void {
   petWindow.webContents.send(channel, payload);
 }
 
+function sendToBubble<T>(channel: string, payload?: T): void {
+  if (!bubbleWindow || bubbleWindow.isDestroyed()) return;
+  bubbleWindow.webContents.send(channel, payload);
+}
+
 function sendToAll<T>(channel: string, payload?: T): void {
   sendToPet(channel, payload);
+  sendToBubble(channel, payload);
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     settingsWindow.webContents.send(channel, payload);
   }
@@ -515,12 +519,116 @@ function setPetFacing(next: PetFacing): void {
   publishSnapshot();
 }
 
+function isScreenBlockMode(): boolean {
+  return blockingMode === "breakRun" || blockingMode === "focusWarning";
+}
+
+function bubbleFrameForEmbeddedWindow(bubble: SpeechBubble): SpeechBubbleFrame {
+  if (petWindow && !petWindow.isDestroyed()) {
+    petLayout = layoutForPetAnchor(petWindow.getBounds());
+  }
+  return { bubble, layout: petLayout };
+}
+
+function bubbleFrameForFloatingWindow(bubble: SpeechBubble): SpeechBubbleFrame | null {
+  if (!petWindow || petWindow.isDestroyed() || !bubbleWindow || bubbleWindow.isDestroyed()) {
+    return null;
+  }
+
+  const petBounds = petWindow.getBounds();
+  const scale = getSettings().petScale;
+  const anchorX = petBounds.x + petBounds.width / 2 + petLayout.petOffsetX;
+  const petTopY = petTopYForBounds(petBounds, scale);
+  const display = screen.getDisplayNearestPoint({ x: Math.round(anchorX), y: petTopY });
+  const workArea = display.workArea;
+  const x = Math.round(
+    clampNumber(
+      anchorX - BUBBLE_WINDOW_WIDTH / 2,
+      workArea.x,
+      workArea.x + workArea.width - BUBBLE_WINDOW_WIDTH
+    )
+  );
+  const y = Math.round(
+    clampNumber(
+      petTopY - BUBBLE_WINDOW_HEIGHT,
+      workArea.y,
+      workArea.y + workArea.height - BUBBLE_WINDOW_HEIGHT
+    )
+  );
+  const current = bubbleWindow.getBounds();
+  const nextBounds = {
+    width: BUBBLE_WINDOW_WIDTH,
+    height: BUBBLE_WINDOW_HEIGHT,
+    x,
+    y
+  };
+  if (
+    current.width !== nextBounds.width ||
+    current.height !== nextBounds.height ||
+    current.x !== nextBounds.x ||
+    current.y !== nextBounds.y
+  ) {
+    bubbleWindow.setBounds(nextBounds, false);
+  }
+
+  const bubbleInsetX = Math.round((BUBBLE_WINDOW_WIDTH - BUBBLE_RENDER_WIDTH) / 2);
+  const bubbleArrowX = clampNumber(anchorX - x - bubbleInsetX, 18, BUBBLE_RENDER_WIDTH - 18);
+  return {
+    bubble,
+    layout: {
+      petOffsetX: 0,
+      bubbleAnchorX: Math.round(anchorX - x),
+      bubbleLeftX: Math.round(BUBBLE_WINDOW_WIDTH / 2),
+      bubbleArrowX: Math.round(bubbleArrowX)
+    }
+  };
+}
+
+function showFloatingBubbleWindow(bubble: SpeechBubble): void {
+  if (!bubbleWindow || bubbleWindow.isDestroyed()) createBubbleWindow();
+  if (!bubbleWindow || bubbleWindow.isDestroyed()) return;
+
+  const publish = (): void => {
+    if (currentBubble !== bubble || isScreenBlockMode()) return;
+    const frame = bubbleFrameForFloatingWindow(bubble);
+    if (!frame || !bubbleWindow || bubbleWindow.isDestroyed()) return;
+    if (!bubbleWindow.isVisible()) bubbleWindow.showInactive();
+    sendToBubble("pet:show-bubble", frame);
+  };
+
+  if (bubbleWindow.webContents.isLoading()) {
+    bubbleWindow.webContents.once("did-finish-load", publish);
+    return;
+  }
+  publish();
+}
+
+function positionFloatingBubbleWindow(): void {
+  if (!currentBubble || isScreenBlockMode()) return;
+  const frame = bubbleFrameForFloatingWindow(currentBubble);
+  if (frame) sendToBubble("pet:show-bubble", frame);
+}
+
+function hideFloatingBubbleWindow(): void {
+  if (!bubbleWindow || bubbleWindow.isDestroyed()) return;
+  sendToBubble("pet:hide-bubble", petLayout);
+  if (bubbleWindow.isVisible()) bubbleWindow.hide();
+}
+
 function showBubble(bubble: SpeechBubble): void {
   if (bubbleTimer) clearTimeout(bubbleTimer);
   currentBubble = bubble;
-  resizePetWindowForScale(getSettings().petScale);
-  sendPetLayout();
-  sendToPet("pet:show-bubble", bubble);
+  if (isScreenBlockMode()) {
+    hideFloatingBubbleWindow();
+    embeddedBubbleVisible = true;
+    sendToPet("pet:show-bubble", bubbleFrameForEmbeddedWindow(bubble));
+  } else {
+    if (embeddedBubbleVisible) {
+      embeddedBubbleVisible = false;
+      sendToPet("pet:hide-bubble", petLayout);
+    }
+    showFloatingBubbleWindow(bubble);
+  }
   if (bubble.autoDismissMs) {
     bubbleTimer = setTimeout(() => hideBubble(), bubble.autoDismissMs);
   }
@@ -532,12 +640,14 @@ function hideBubble(): void {
     bubbleTimer = null;
   }
   currentBubble = null;
-  resizePetWindowForScale(getSettings().petScale);
-  sendPetLayout();
-  sendToPet("pet:hide-bubble");
+  if (embeddedBubbleVisible) {
+    embeddedBubbleVisible = false;
+    sendToPet("pet:hide-bubble", petLayout);
+  }
+  hideFloatingBubbleWindow();
 }
 
-function rendererUrl(route: "pet" | "settings"): string {
+function rendererUrl(route: "pet" | "settings" | "bubble"): string {
   const devServer = process.env.ELECTRON_RENDERER_URL;
   if (devServer) return `${devServer}#${route}`;
   return RENDERER_HTML_PATH;
@@ -549,7 +659,7 @@ function runtimeAssetPath(filename: string): string {
     : resolve(process.cwd(), "build", filename);
 }
 
-function loadRenderer(win: BrowserWindow, route: "pet" | "settings"): void {
+function loadRenderer(win: BrowserWindow, route: "pet" | "settings" | "bubble"): void {
   const devServer = process.env.ELECTRON_RENDERER_URL;
   if (devServer) {
     void win.loadURL(rendererUrl(route));
@@ -591,25 +701,9 @@ function initialPetBounds(): Electron.Rectangle {
 
 function persistPetPosition(): void {
   if (!petWindow || petWindow.isDestroyed()) return;
+  if (isScreenBlockMode()) return;
   const bounds = petWindow.getBounds();
-  if (!currentBubble) {
-    store.set("petPosition", { x: bounds.x, y: bounds.y });
-    return;
-  }
-
-  const scale = getSettings().petScale;
-  const petSize = visiblePetSize(scale);
-  const compactSize = {
-    width: Math.max(44, petSize.width + PET_WINDOW_PADDING),
-    height: Math.max(48, petSize.height + PET_WINDOW_PADDING)
-  };
-  const petAnchorX = bounds.x + bounds.width / 2 + petLayout.petOffsetX;
-  const compactBounds = clampBoundsToWorkArea({
-    ...compactSize,
-    x: Math.round(petAnchorX - compactSize.width / 2),
-    y: bounds.y + bounds.height - compactSize.height
-  });
-  store.set("petPosition", { x: compactBounds.x, y: compactBounds.y });
+  store.set("petPosition", { x: bounds.x, y: bounds.y });
 }
 
 function petTopYForBounds(
@@ -634,11 +728,11 @@ function dragBoundsForCursor(cursor: PetPosition, scale = getSettings().petScale
   return bounds;
 }
 
-function resizePetWindowForScale(scale: number): void {
+function resizePetWindowForScale(scale: number, publishLayout = true): void {
   if (!petWindow || petWindow.isDestroyed()) return;
-  if (blockingMode === "breakRun" || blockingMode === "focusWarning") {
+  if (isScreenBlockMode()) {
     petLayout = layoutForPetAnchor(petWindow.getBounds());
-    sendPetLayout();
+    if (publishLayout) sendPetLayout();
     return;
   }
   if (dragTimer || dragSafetyTimer) {
@@ -650,9 +744,10 @@ function resizePetWindowForScale(scale: number): void {
       current.x !== nextBounds.x ||
       current.y !== nextBounds.y
     ) {
-      petWindow.setBounds(nextBounds);
+      petWindow.setBounds(nextBounds, false);
     }
-    sendPetLayout();
+    if (publishLayout) sendPetLayout();
+    positionFloatingBubbleWindow();
     return;
   }
   const current = petWindow.getBounds();
@@ -670,9 +765,10 @@ function resizePetWindowForScale(scale: number): void {
     current.x !== nextBounds.x ||
     current.y !== nextBounds.y
   ) {
-    petWindow.setBounds(nextBounds);
+    petWindow.setBounds(nextBounds, false);
   }
-  sendPetLayout();
+  if (publishLayout) sendPetLayout();
+  positionFloatingBubbleWindow();
   persistPetPosition();
 }
 
@@ -685,6 +781,7 @@ function showPetWindowInactive(): void {
   petWindow.setAlwaysOnTop(true, process.platform === "darwin" ? "floating" : "normal");
   updateTrayMenu();
   sendPetLayout();
+  if (currentBubble && !isScreenBlockMode()) showFloatingBubbleWindow(currentBubble);
   publishSnapshot();
 }
 
@@ -729,19 +826,56 @@ function createPetWindow(): void {
   });
   petWindow.on("hide", () => {
     stopPetDrag();
+    hideFloatingBubbleWindow();
     updateTrayMenu();
     publishSnapshot();
   });
   petWindow.on("closed", () => {
     stopPetDrag();
+    hideFloatingBubbleWindow();
     petWindow = null;
     updateTrayMenu();
     publishSnapshot();
   });
 }
 
+function createBubbleWindow(): void {
+  if (bubbleWindow && !bubbleWindow.isDestroyed()) return;
+
+  bubbleWindow = new BrowserWindow({
+    width: BUBBLE_WINDOW_WIDTH,
+    height: BUBBLE_WINDOW_HEIGHT,
+    transparent: true,
+    frame: false,
+    resizable: false,
+    movable: false,
+    show: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    backgroundColor: "#00000000",
+    alwaysOnTop: true,
+    webPreferences: {
+      preload: PRELOAD_PATH,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      webSecurity: !IS_DEV
+    }
+  });
+
+  bubbleWindow.setAlwaysOnTop(true, process.platform === "darwin" ? "floating" : "normal");
+  if (process.platform === "darwin") {
+    bubbleWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+  loadRenderer(bubbleWindow, "bubble");
+  bubbleWindow.on("closed", () => {
+    bubbleWindow = null;
+  });
+}
+
 function ensurePetWindowVisible(): void {
   if (!petWindow || petWindow.isDestroyed()) createPetWindow();
+  if (!bubbleWindow || bubbleWindow.isDestroyed()) createBubbleWindow();
   showPetWindowInactive();
 }
 
@@ -807,6 +941,7 @@ function actionMenuItems(): Electron.MenuItemConstructorOptions[] {
       label: dogVisible ? labels.hideDog : labels.showDog,
       click: () => {
         if (!petWindow) createPetWindow();
+        if (!bubbleWindow) createBubbleWindow();
         if (!petWindow) return;
         if (petWindow.isVisible()) petWindow.hide();
         else petWindow.showInactive();
@@ -918,6 +1053,7 @@ function movePetWithCursor(): void {
       });
   petWindow.setBounds(bounds);
   if (dragPetGrabOffset) sendPetLayout();
+  positionFloatingBubbleWindow();
 }
 
 function startPetDrag(offset: { offsetX: number; offsetY: number }): void {
@@ -1291,6 +1427,7 @@ function startBreakRun(): void {
 
 function expandPetWindowForScreenBlock(coverageRatio?: number): void {
   if (!petWindow || petWindow.isDestroyed()) return;
+  hideFloatingBubbleWindow();
   const settings = getSettings();
   const current = petWindow.getBounds();
   preScreenBlockBounds = current;
@@ -2477,6 +2614,7 @@ app.whenReady().then(() => {
   restoreFocusSession();
   registerIpc();
   createPetWindow();
+  createBubbleWindow();
   createTray();
   scheduleReminderTimers();
   scheduleDistractionDetection();
@@ -2490,6 +2628,7 @@ app.whenReady().then(() => {
 
   app.on("activate", () => {
     if (!petWindow) createPetWindow();
+    if (!bubbleWindow) createBubbleWindow();
   });
 });
 

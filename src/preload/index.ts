@@ -7,7 +7,7 @@ import type {
   PetLayout,
   PetState,
   Settings,
-  SpeechBubble,
+  SpeechBubbleFrame,
   TodayStats
 } from "../shared/types";
 
@@ -46,9 +46,10 @@ const api = {
     onChannel("pet:set-state", callback),
   onPetLayout: (callback: (layout: PetLayout) => void): Unsubscribe =>
     onChannel("pet:layout", callback),
-  onShowBubble: (callback: (bubble: SpeechBubble) => void): Unsubscribe =>
+  onShowBubble: (callback: (frame: SpeechBubbleFrame) => void): Unsubscribe =>
     onChannel("pet:show-bubble", callback),
-  onHideBubble: (callback: () => void): Unsubscribe => onChannel("pet:hide-bubble", callback),
+  onHideBubble: (callback: (layout: PetLayout) => void): Unsubscribe =>
+    onChannel("pet:hide-bubble", callback),
   onPetImported: (callback: (pet: InstalledPet) => void): Unsubscribe =>
     onChannel("pet:imported", callback),
   onSettingsUpdated: (callback: (settings: Settings) => void): Unsubscribe =>

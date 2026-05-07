@@ -83,6 +83,11 @@ export type PetLayout = {
   bubbleArrowX: number;
 };
 
+export type SpeechBubbleFrame = {
+  bubble: SpeechBubble;
+  layout: PetLayout;
+};
+
 export type BlockingMode = "break" | "breakRun" | "hydration" | "focusWarning" | null;
 
 export type Settings = {
@@ -167,8 +172,8 @@ export type DemoTrigger =
 export type RendererEventMap = {
   "pet:set-state": PetState;
   "pet:layout": PetLayout;
-  "pet:show-bubble": SpeechBubble;
-  "pet:hide-bubble": void;
+  "pet:show-bubble": SpeechBubbleFrame;
+  "pet:hide-bubble": PetLayout;
   "pet:imported": InstalledPet;
   "settings:updated": Settings;
   "stats:updated": TodayStats;

@@ -57,6 +57,15 @@ textarea {
   width: 100vw;
 }
 
+.bubble-shell {
+  --bubble-arrow-x: 138px;
+  background: transparent;
+  height: 100vh;
+  pointer-events: none;
+  position: relative;
+  width: 100vw;
+}
+
 .pet-button {
   align-items: center;
   background: transparent;
@@ -297,6 +306,11 @@ textarea {
   pointer-events: auto;
   transform: translateX(-50%);
   z-index: 2;
+}
+
+.bubble-shell .speech-bubble {
+  bottom: 10px;
+  left: 50%;
 }
 
 .pet-shell.is-screen-block .speech-bubble {

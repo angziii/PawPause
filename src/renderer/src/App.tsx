@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { i18n, resolveLanguage } from "../../shared/i18n";
+import { BubbleView } from "./components/BubbleView";
 import { PetView } from "./components/PetView";
 import { SettingsView } from "./components/SettingsView";
 import { pawpauseApi } from "./pawpauseApi";
@@ -25,5 +26,6 @@ export default function App(): JSX.Element {
 
   const route = window.location.hash.replace("#", "");
   if (route === "settings") return <SettingsView />;
+  if (route === "bubble") return <BubbleView />;
   return <PetView />;
 }

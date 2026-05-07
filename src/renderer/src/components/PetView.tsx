@@ -12,7 +12,19 @@ type DragRef = {
   dragging: boolean;
 };
 
+type PetChrome = {
+  bubble: SpeechBubble | null;
+  layout: PetLayout;
+};
+
 const DRAG_START_DISTANCE_PX = 10;
+
+const INITIAL_LAYOUT: PetLayout = {
+  petOffsetX: 0,
+  bubbleAnchorX: 0,
+  bubbleLeftX: 0,
+  bubbleArrowX: 0
+};
 
 function formatFocusCountdown(endsAt: number | null, now: number): string {
   const remainingSeconds = Math.max(0, Math.ceil(((endsAt ?? now) - now) / 1000));
@@ -25,20 +37,24 @@ function formatFocusCountdown(endsAt: number | null, now: number): string {
 export function PetView(): JSX.Element {
   const snapshot = useSnapshot();
   const now = useNow(1000);
-  const [bubble, setBubble] = useState<SpeechBubble | null>(null);
-  const [layout, setLayout] = useState<PetLayout>({
-    petOffsetX: 0,
-    bubbleAnchorX: 0,
-    bubbleLeftX: 0,
-    bubbleArrowX: 0
+  const [chrome, setChrome] = useState<PetChrome>({
+    bubble: null,
+    layout: INITIAL_LAYOUT
   });
   const dragRef = useRef<DragRef | null>(null);
   const labels = i18n(resolveLanguage(snapshot.settings.language)).settings;
+  const { bubble, layout } = chrome;
 
   useEffect(() => {
-    const offLayout = window.pawpause.onPetLayout(setLayout);
-    const offBubble = window.pawpause.onShowBubble(setBubble);
-    const offHide = window.pawpause.onHideBubble(() => setBubble(null));
+    const offLayout = window.pawpause.onPetLayout((layout) =>
+      setChrome((current) => ({ ...current, layout }))
+    );
+    const offBubble = window.pawpause.onShowBubble((frame) =>
+      setChrome({ bubble: frame.bubble, layout: frame.layout })
+    );
+    const offHide = window.pawpause.onHideBubble((layout) =>
+      setChrome((current) => ({ ...current, bubble: null, layout }))
+    );
     return () => {
       offLayout();
       offBubble();
