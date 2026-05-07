@@ -83,7 +83,12 @@ jobs:
             exit 1
           fi
 
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain"
+          partition_log="$RUNNER_TEMP/security-partition.log"
+          if ! security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" > "$partition_log" 2>&1; then
+            echo "::error::Failed to unlock the imported code signing key for codesign."
+            sed -E 's/[A-F0-9]{40}/[HASH]/g' "$partition_log" | sed -E 's/"[^"]+"/"[redacted identity]"/g'
+            exit 1
+          fi
 
           existing_keychains="$(security list-keychains -d user | tr -d '"' || true)"
           security list-keychains -d user -s "$keychain" $existing_keychains
