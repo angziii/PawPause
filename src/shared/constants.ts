@@ -21,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hydrationIntervalMinutes: 90,
   focusDurationMinutes: 25,
   agentActivityEnabled: true,
+  agentCompletionSoundEnabled: true,
   distractionDetectionEnabled: false,
   distractionGraceSeconds: 8,
   distractionBlockedApps: [

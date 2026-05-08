@@ -106,6 +106,7 @@ export type Settings = {
   hydrationIntervalMinutes: number;
   focusDurationMinutes: number;
   agentActivityEnabled: boolean;
+  agentCompletionSoundEnabled: boolean;
   distractionDetectionEnabled: boolean;
   distractionGraceSeconds: number;
   distractionBlockedApps: string[];

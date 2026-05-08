@@ -292,6 +292,14 @@ function getSettings(): Settings {
       0.35,
       1
     ),
+    agentActivityEnabled:
+      typeof stored.agentActivityEnabled === "boolean"
+        ? stored.agentActivityEnabled
+        : DEFAULT_SETTINGS.agentActivityEnabled,
+    agentCompletionSoundEnabled:
+      typeof stored.agentCompletionSoundEnabled === "boolean"
+        ? stored.agentCompletionSoundEnabled
+        : DEFAULT_SETTINGS.agentCompletionSoundEnabled,
     selectedPetId,
     installedPets
   };
@@ -314,6 +322,8 @@ function setSettings(next: Settings): void {
     petIdleMotionSeconds: normalizeNumber(next.petIdleMotionSeconds, 3.2, 1, 12),
     screenBlockDurationSeconds: normalizeNumber(next.screenBlockDurationSeconds, 120, 15, 600),
     screenBlockCoverageRatio: normalizeNumber(next.screenBlockCoverageRatio, 0.4, 0.35, 1),
+    agentActivityEnabled: Boolean(next.agentActivityEnabled),
+    agentCompletionSoundEnabled: Boolean(next.agentCompletionSoundEnabled),
     installedPets: mergeInstalledPets(next.installedPets)
   };
   store.set("settings", normalized);
@@ -1658,6 +1668,27 @@ function agentEventMessage(event: AgentMonitorEvent): string {
   return pick(labels.agentComplete)(event.source);
 }
 
+function playAgentCompletionSound(event: AgentMonitorEvent): void {
+  if (!getSettings().agentCompletionSoundEnabled) return;
+  if (event.kind !== "complete" && event.kind !== "failed") return;
+  if (process.platform === "darwin") {
+    const sound = event.kind === "failed" ? "Basso.aiff" : "Glass.aiff";
+    execFile(
+      "/usr/bin/afplay",
+      [join("/System/Library/Sounds", sound)],
+      { timeout: 2500 },
+      (error) => {
+        if (!error) return;
+        execFile("/usr/bin/osascript", ["-e", "beep 1"], { timeout: 1500 }, () => {
+          shell.beep();
+        });
+      }
+    );
+    return;
+  }
+  shell.beep();
+}
+
 function makeAgentEvent(
   source: AgentSource,
   path: string,
@@ -1890,11 +1921,13 @@ function notifyAgentEvent(event: AgentMonitorEvent): boolean {
   clearAgentPose(false);
 
   const bubbleId = `agent-${event.kind}-${event.timestampMs}`;
+  playAgentCompletionSound(event);
   setPetState(event.state);
+  const displayMs = event.kind === "failed" ? 5200 : 3800;
   showBubble({
     id: bubbleId,
     message: agentEventMessage(event),
-    autoDismissMs: event.kind === "failed" ? 5200 : 3800
+    autoDismissMs: displayMs
   });
   setTimeout(
     () => {
@@ -1905,7 +1938,7 @@ function notifyAgentEvent(event: AgentMonitorEvent): boolean {
         scheduleAmbientPose();
       }
     },
-    event.kind === "failed" ? 5400 : 4000
+    displayMs + 200
   );
   return true;
 }
