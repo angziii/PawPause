@@ -5,7 +5,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pawpause.vercel.app
 const title = "PawPause - Pixel desktop companion";
 const description =
   "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code / DeepSeek TUI activity nudges.";
-const socialImage = "/social-preview-site.png";
+const socialImage = "/x-card-preview.png";
+const socialImageAlt = "PawPause landing page preview";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
         url: socialImage,
         width: 1200,
         height: 630,
-        alt: "PawPause landing page preview",
+        alt: socialImageAlt,
         type: "image/png",
       },
     ],
@@ -34,7 +35,19 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: [socialImage],
+    images: [
+      {
+        url: socialImage,
+        width: 1200,
+        height: 630,
+        alt: socialImageAlt,
+        type: "image/png",
+      },
+    ],
+  },
+  other: {
+    "twitter:url": siteUrl,
+    "twitter:domain": "pawpause.vercel.app",
   },
 };
 
