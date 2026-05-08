@@ -83,8 +83,10 @@ a {
   min-height: 66px;
   padding: 0 18px;
   border: 2px solid var(--line);
+  appearance: none;
   background: var(--panel);
   color: var(--ink);
+  cursor: pointer;
   font-family: var(--font-pixel);
   font-size: 1.05rem;
   font-weight: 700;
@@ -101,6 +103,173 @@ a {
 
 .nav-link--primary {
   background: var(--green);
+}
+
+.download-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background:
+    linear-gradient(rgba(36, 32, 24, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 32, 24, 0.18) 1px, transparent 1px),
+    rgba(24, 23, 19, 0.38);
+  background-size: 28px 28px;
+  backdrop-filter: blur(6px);
+}
+
+.download-dialog {
+  position: relative;
+  width: min(560px, 100%);
+  border: 2px solid var(--line);
+  background: var(--paper);
+  box-shadow:
+    8px 8px 0 var(--green),
+    16px 16px 0 var(--blue),
+    24px 24px 0 var(--line);
+  color: var(--ink);
+  font-family: var(--font-pixel);
+}
+
+.download-dialog::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  z-index: -1;
+  border: 2px solid var(--line);
+  background: var(--yellow);
+}
+
+.download-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--line);
+  appearance: none;
+  background: var(--red);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+[dir="rtl"] .download-close {
+  right: auto;
+  left: 12px;
+}
+
+.download-dialog__header {
+  padding: 28px 66px 18px 28px;
+  border-bottom: 2px solid var(--line);
+  background:
+    linear-gradient(var(--soft-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--soft-line) 1px, transparent 1px),
+    #fff;
+  background-size: 22px 22px;
+}
+
+[dir="rtl"] .download-dialog__header {
+  padding-right: 28px;
+  padding-left: 66px;
+}
+
+.download-dialog__header p {
+  display: inline-flex;
+  margin: 0 0 12px;
+  padding: 5px 8px;
+  border: 2px solid var(--line);
+  background: var(--green);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+.download-dialog__header h2 {
+  margin: 0;
+  font-size: clamp(1.9rem, 7vw, 3.4rem);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: 0;
+  text-shadow:
+    2px 2px 0 var(--green),
+    4px 4px 0 var(--blue),
+    6px 6px 0 var(--line);
+}
+
+.download-dialog__header span {
+  display: block;
+  margin-top: 16px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.download-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  background: var(--line);
+}
+
+.download-option {
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px;
+  background: var(--paper);
+  transition: transform 140ms ease, background 140ms ease;
+}
+
+.download-option:hover {
+  z-index: 1;
+  background: #fff;
+  transform: translateY(-2px);
+}
+
+.download-option span {
+  color: var(--ink);
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.download-option small {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.download-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  border-top: 2px solid var(--line);
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.download-all:hover {
+  background: #fff;
 }
 
 .language-picker {
@@ -508,6 +677,36 @@ h1 {
   .footer {
     flex-direction: column;
   }
+
+  .download-layer {
+    align-items: start;
+    padding: 88px 18px 28px;
+    overflow-y: auto;
+  }
+
+  .download-dialog {
+    box-shadow:
+      5px 5px 0 var(--green),
+      10px 10px 0 var(--blue),
+      15px 15px 0 var(--line);
+  }
+
+  .download-dialog__header {
+    padding: 22px 62px 16px 20px;
+  }
+
+  [dir="rtl"] .download-dialog__header {
+    padding-right: 20px;
+    padding-left: 62px;
+  }
+
+  .download-options {
+    grid-template-columns: 1fr;
+  }
+
+  .download-option {
+    min-height: 82px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -520,6 +719,10 @@ h1 {
   }
 
   .nav-link {
+    transition: none;
+  }
+
+  .download-option {
     transition: none;
   }
 }

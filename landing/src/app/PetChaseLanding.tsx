@@ -6,6 +6,7 @@ import type { CSSProperties } from "react";
 const repoUrl = "https://github.com/angziii/PawPause";
 const latestReleaseUrl = `${repoUrl}/releases/latest`;
 const petdexUrl = "https://petdex.crafter.run/zh";
+const latestVersion = "v1.0.0";
 
 const links = [
   { id: "download", href: latestReleaseUrl, primary: true },
@@ -27,6 +28,10 @@ type LandingCopy = {
   petdexLine2: string;
   bubbles: string;
   release: string;
+  downloadTitle: string;
+  downloadSubtitle: string;
+  downloadAll: string;
+  closeDownload: string;
   prompts: string[];
 };
 
@@ -42,6 +47,29 @@ const languageOptions: Array<{ value: Language; label: string }> = [
   { value: "ar", label: "العربية" },
 ];
 
+const downloadOptions = [
+  {
+    title: "macOS Apple Silicon",
+    meta: "M1 / M2 / M3 / M4 · DMG",
+    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.0-mac-arm64.dmg`,
+  },
+  {
+    title: "macOS Intel",
+    meta: "Intel Mac · DMG",
+    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.0-mac-x64.dmg`,
+  },
+  {
+    title: "Windows",
+    meta: "64-bit · EXE",
+    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.0-win-x64.exe`,
+  },
+  {
+    title: "More builds",
+    meta: "ZIP files and release notes",
+    href: latestReleaseUrl,
+  },
+];
+
 const copies: Record<Language, LandingCopy> = {
   "zh-CN": {
     languageLabel: "语言",
@@ -52,7 +80,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "兼容 Codex 宠物格式，",
     petdexLine2: "可前往 PetDex 社区下载。",
     bubbles: "Agent、休息、喝水提示都能冒泡。",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "选择安装包",
+    downloadSubtitle: "根据你的系统下载最新版本。",
+    downloadAll: "查看全部 Release",
+    closeDownload: "关闭下载弹窗",
     prompts: [
       "Codex 正在思考",
       "Claude Code 正在调用工具",
@@ -75,7 +107,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "Compatible with the Codex pet format.",
     petdexLine2: "Download more from PetDex.",
     bubbles: "Agent, break, and water nudges appear as bubbles.",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "Choose an installer",
+    downloadSubtitle: "Download the latest build for your system.",
+    downloadAll: "View all releases",
+    closeDownload: "Close download dialog",
     prompts: [
       "Codex is thinking",
       "Claude Code is using a tool",
@@ -98,7 +134,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "Codex ペット形式に対応。",
     petdexLine2: "追加キャラクターは PetDex コミュニティから入手できます。",
     bubbles: "Agent・休憩・水分補給の通知が吹き出しで出ます。",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "インストーラを選択",
+    downloadSubtitle: "お使いの環境向けの最新版をダウンロード。",
+    downloadAll: "すべてのリリースを見る",
+    closeDownload: "ダウンロードダイアログを閉じる",
     prompts: [
       "Codex が考えています",
       "Claude Code がツールを使用中",
@@ -121,7 +161,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "Codex 펫 형식과 호환됩니다.",
     petdexLine2: "PetDex 커뮤니티에서 더 받을 수 있어요.",
     bubbles: "Agent, 휴식, 물 알림이 말풍선으로 떠요.",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "설치 파일 선택",
+    downloadSubtitle: "시스템에 맞는 최신 버전을 다운로드하세요.",
+    downloadAll: "모든 릴리스 보기",
+    closeDownload: "다운로드 창 닫기",
     prompts: [
       "Codex 생각 중",
       "Claude Code 도구 사용 중",
@@ -144,7 +188,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "Compatible con el formato de mascotas de Codex.",
     petdexLine2: "Descarga más en PetDex.",
     bubbles: "Los avisos de Agent, pausa y agua aparecen en burbujas.",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "Elige un instalador",
+    downloadSubtitle: "Descarga la version mas reciente para tu sistema.",
+    downloadAll: "Ver todas las versiones",
+    closeDownload: "Cerrar dialogo de descarga",
     prompts: [
       "Codex está pensando",
       "Claude Code usa una herramienta",
@@ -167,7 +215,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "Compatible avec le format de compagnon Codex.",
     petdexLine2: "Télécharge d'autres personnages sur PetDex.",
     bubbles: "Les alertes Agent, pause et eau apparaissent en bulles.",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "Choisir un installateur",
+    downloadSubtitle: "Telecharge la derniere version pour ton systeme.",
+    downloadAll: "Voir toutes les versions",
+    closeDownload: "Fermer la fenetre de telechargement",
     prompts: [
       "Codex réfléchit",
       "Claude Code utilise un outil",
@@ -190,7 +242,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "Kompatibel mit dem Codex-Pet-Format.",
     petdexLine2: "Weitere Figuren gibt es bei PetDex.",
     bubbles: "Agent-, Pausen- und Wasserhinweise erscheinen als Blasen.",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "Installer wahlen",
+    downloadSubtitle: "Lade die neueste Version fur dein System herunter.",
+    downloadAll: "Alle Versionen ansehen",
+    closeDownload: "Download-Dialog schliessen",
     prompts: [
       "Codex denkt nach",
       "Claude Code nutzt ein Tool",
@@ -213,7 +269,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "Совместим с форматом питомцев Codex.",
     petdexLine2: "Больше персонажей есть в PetDex.",
     bubbles: "Agent, паузы и вода появляются в пузырях.",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "Выберите установщик",
+    downloadSubtitle: "Скачайте последнюю версию для вашей системы.",
+    downloadAll: "Все релизы",
+    closeDownload: "Закрыть окно загрузки",
     prompts: [
       "Codex думает",
       "Claude Code использует инструмент",
@@ -237,7 +297,11 @@ const copies: Record<Language, LandingCopy> = {
     petdexLine1: "متوافق مع تنسيق حيوانات Codex.",
     petdexLine2: "حمّل المزيد من مجتمع PetDex.",
     bubbles: "تظهر تنبيهات Agent والاستراحة والماء كفقاعات.",
-    release: "Latest release: v0.1.4",
+    release: "Latest release: v1.0.0",
+    downloadTitle: "اختر المثبت",
+    downloadSubtitle: "حمّل أحدث نسخة لنظامك.",
+    downloadAll: "عرض كل الإصدارات",
+    closeDownload: "إغلاق نافذة التنزيل",
     prompts: [
       "Codex يفكر",
       "Claude Code يستخدم أداة",
@@ -290,6 +354,7 @@ const pets: PetDefinition[] = [
 export default function PetChaseLanding() {
   const reactionTimer = useRef<number | null>(null);
   const [language, setLanguage] = useState<Language>("en");
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [activePet, setActivePet] = useState<{ slug: string; promptIndex: number } | null>(null);
   const copy = copies[language];
   const [petdexPrefix, petdexSuffix] = copy.petdexLine2.split("PetDex");
@@ -305,6 +370,17 @@ export default function PetChaseLanding() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isDownloadOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsDownloadOpen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isDownloadOpen]);
+
   const reactToPet = (slug: string, index: number) => {
     if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
     setActivePet({
@@ -318,17 +394,29 @@ export default function PetChaseLanding() {
     <main className="page-shell" dir={copy.dir ?? "ltr"}>
       <section className="hero-stage" aria-label="PawPause interactive pet playground">
         <nav className="topbar" aria-label="PawPause links">
-          {links.map((link) => (
-            <a
-              className={link.primary ? "nav-link nav-link--primary" : "nav-link"}
-              href={link.href}
-              key={link.id}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {copy.nav[link.id]}
-            </a>
-          ))}
+          {links.map((link) =>
+            link.id === "download" ? (
+              <button
+                aria-haspopup="dialog"
+                className="nav-link nav-link--primary"
+                key={link.id}
+                onClick={() => setIsDownloadOpen(true)}
+                type="button"
+              >
+                {copy.nav[link.id]}
+              </button>
+            ) : (
+              <a
+                className="nav-link"
+                href={link.href}
+                key={link.id}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {copy.nav[link.id]}
+              </a>
+            ),
+          )}
           <label className="language-picker">
             <span>{copy.languageLabel}</span>
             <select
@@ -396,6 +484,49 @@ export default function PetChaseLanding() {
         <span>PawPause by angziii</span>
         <span>{copy.release}</span>
       </footer>
+
+      {isDownloadOpen ? (
+        <div className="download-layer" role="presentation" onMouseDown={() => setIsDownloadOpen(false)}>
+          <div
+            aria-labelledby="download-title"
+            aria-modal="true"
+            className="download-dialog"
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <button
+              aria-label={copy.closeDownload}
+              className="download-close"
+              onClick={() => setIsDownloadOpen(false)}
+              type="button"
+            >
+              ×
+            </button>
+            <div className="download-dialog__header">
+              <p>{latestVersion}</p>
+              <h2 id="download-title">{copy.downloadTitle}</h2>
+              <span>{copy.downloadSubtitle}</span>
+            </div>
+            <div className="download-options">
+              {downloadOptions.map((option) => (
+                <a
+                  className="download-option"
+                  href={option.href}
+                  key={option.title}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span>{option.title}</span>
+                  <small>{option.meta}</small>
+                </a>
+              ))}
+            </div>
+            <a className="download-all" href={latestReleaseUrl} target="_blank" rel="noreferrer">
+              {copy.downloadAll}
+            </a>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
