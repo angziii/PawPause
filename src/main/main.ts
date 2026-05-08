@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, net, protocol, screen, Tray } from "electron";
+import electron from "electron";
 import Store from "electron-store";
 import {
   createEmptyStats,
@@ -48,6 +48,8 @@ import {
   userPetsRoot
 } from "./petPackages";
 import { createTrayImage } from "./trayIcon";
+
+const { app, BrowserWindow, ipcMain, Menu, nativeTheme, net, protocol, screen, shell, Tray } = electron;
 
 type PetPosition = {
   x: number;
@@ -116,9 +118,9 @@ const store = new Store<StoreSchema>({
   }
 });
 
-let petWindow: BrowserWindow | null = null;
-let settingsWindow: BrowserWindow | null = null;
-let tray: Tray | null = null;
+let petWindow: Electron.BrowserWindow | null = null;
+let settingsWindow: Electron.BrowserWindow | null = null;
+let tray: Electron.Tray | null = null;
 let petState: PetState = "idle";
 let petFacing: PetFacing = "right";
 let blockingMode: BlockingMode = null;
@@ -547,7 +549,7 @@ function runtimeAssetPath(filename: string): string {
     : resolve(process.cwd(), "build", filename);
 }
 
-function loadRenderer(win: BrowserWindow, route: "pet" | "settings"): void {
+function loadRenderer(win: Electron.BrowserWindow, route: "pet" | "settings"): void {
   const devServer = process.env.ELECTRON_RENDERER_URL;
   if (devServer) {
     void win.loadURL(rendererUrl(route));

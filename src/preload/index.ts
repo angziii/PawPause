@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import electron from "electron";
 import type {
   AppSnapshot,
   DemoTrigger,
@@ -12,6 +12,8 @@ import type {
 } from "../shared/types";
 
 type Unsubscribe = () => void;
+
+const { contextBridge, ipcRenderer } = electron;
 
 function onChannel<T>(channel: string, callback: (payload: T) => void): Unsubscribe {
   const listener = (_event: Electron.IpcRendererEvent, payload: T) => callback(payload);
