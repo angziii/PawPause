@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
 import { isAbsolute, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, net, protocol, screen, Tray } from "electron";
+import electron from "electron";
 import Store from "electron-store";
 import {
   createEmptyStats,
@@ -48,6 +48,8 @@ import {
   userPetsRoot
 } from "./petPackages";
 import { createTrayImage } from "./trayIcon";
+
+const { app, BrowserWindow, ipcMain, Menu, nativeTheme, net, protocol, screen, shell, Tray } = electron;
 
 type PetPosition = {
   x: number;
@@ -116,9 +118,9 @@ const store = new Store<StoreSchema>({
   }
 });
 
-let petWindow: BrowserWindow | null = null;
-let settingsWindow: BrowserWindow | null = null;
-let tray: Tray | null = null;
+let petWindow: Electron.BrowserWindow | null = null;
+let settingsWindow: Electron.BrowserWindow | null = null;
+let tray: Electron.Tray | null = null;
 let petState: PetState = "idle";
 let petFacing: PetFacing = "right";
 let blockingMode: BlockingMode = null;
@@ -290,6 +292,14 @@ function getSettings(): Settings {
       0.35,
       1
     ),
+    agentActivityEnabled:
+      typeof stored.agentActivityEnabled === "boolean"
+        ? stored.agentActivityEnabled
+        : DEFAULT_SETTINGS.agentActivityEnabled,
+    agentCompletionSoundEnabled:
+      typeof stored.agentCompletionSoundEnabled === "boolean"
+        ? stored.agentCompletionSoundEnabled
+        : DEFAULT_SETTINGS.agentCompletionSoundEnabled,
     selectedPetId,
     installedPets
   };
@@ -312,6 +322,8 @@ function setSettings(next: Settings): void {
     petIdleMotionSeconds: normalizeNumber(next.petIdleMotionSeconds, 3.2, 1, 12),
     screenBlockDurationSeconds: normalizeNumber(next.screenBlockDurationSeconds, 120, 15, 600),
     screenBlockCoverageRatio: normalizeNumber(next.screenBlockCoverageRatio, 0.4, 0.35, 1),
+    agentActivityEnabled: Boolean(next.agentActivityEnabled),
+    agentCompletionSoundEnabled: Boolean(next.agentCompletionSoundEnabled),
     installedPets: mergeInstalledPets(next.installedPets)
   };
   store.set("settings", normalized);
@@ -547,7 +559,7 @@ function runtimeAssetPath(filename: string): string {
     : resolve(process.cwd(), "build", filename);
 }
 
-function loadRenderer(win: BrowserWindow, route: "pet" | "settings"): void {
+function loadRenderer(win: Electron.BrowserWindow, route: "pet" | "settings"): void {
   const devServer = process.env.ELECTRON_RENDERER_URL;
   if (devServer) {
     void win.loadURL(rendererUrl(route));
@@ -1382,7 +1394,12 @@ function scheduleDistractionDetection(): void {
 
 function isAgentLikeWindow(appName: string, title: string): boolean {
   const target = `${appName} ${title}`;
-  return /codex|claude|cursor|terminal|iterm|warp|vscode|visual studio code/i.test(target);
+  return /codex|claude|cursor|antigravity|terminal|iterm|warp|vscode|visual studio code|chrome|safari|edge|brave|arc/i.test(target);
+}
+
+function sourceFromAgentWindow(appName: string, title: string): AgentSource {
+  const target = `${appName} ${title}`;
+  return /claude/i.test(target) ? "Claude Code" : "Codex";
 }
 
 function titleLooksBusy(title: string): boolean {
@@ -1395,6 +1412,10 @@ function titleLooksDone(title: string): boolean {
   return /complete|completed|finished|done|success|ready|waiting for input|needs review|changes applied|任务完成|完成|已完成|等待输入|成功/.test(
     title.toLowerCase()
   );
+}
+
+function titleLooksFailed(title: string): boolean {
+  return /failed|failure|error|blocked|crashed|报错|失败|错误|无法继续/.test(title.toLowerCase());
 }
 
 function execFileText(file: string, args: string[]): Promise<string> {
@@ -1656,6 +1677,27 @@ function agentEventMessage(event: AgentMonitorEvent): string {
   return pick(labels.agentComplete)(event.source);
 }
 
+function playAgentCompletionSound(event: AgentMonitorEvent): void {
+  if (!getSettings().agentCompletionSoundEnabled) return;
+  if (event.kind !== "complete" && event.kind !== "failed") return;
+  if (process.platform === "darwin") {
+    const sound = event.kind === "failed" ? "Basso.aiff" : "Glass.aiff";
+    execFile(
+      "/usr/bin/afplay",
+      [join("/System/Library/Sounds", sound)],
+      { timeout: 2500 },
+      (error) => {
+        if (!error) return;
+        execFile("/usr/bin/osascript", ["-e", "beep 1"], { timeout: 1500 }, () => {
+          shell.beep();
+        });
+      }
+    );
+    return;
+  }
+  shell.beep();
+}
+
 function makeAgentEvent(
   source: AgentSource,
   path: string,
@@ -1888,11 +1930,13 @@ function notifyAgentEvent(event: AgentMonitorEvent): boolean {
   clearAgentPose(false);
 
   const bubbleId = `agent-${event.kind}-${event.timestampMs}`;
+  playAgentCompletionSound(event);
   setPetState(event.state);
+  const displayMs = event.kind === "failed" ? 5200 : 3800;
   showBubble({
     id: bubbleId,
     message: agentEventMessage(event),
-    autoDismissMs: event.kind === "failed" ? 5200 : 3800
+    autoDismissMs: displayMs
   });
   setTimeout(
     () => {
@@ -1903,7 +1947,7 @@ function notifyAgentEvent(event: AgentMonitorEvent): boolean {
         scheduleAmbientPose();
       }
     },
-    event.kind === "failed" ? 5400 : 4000
+    displayMs + 200
   );
   return true;
 }
@@ -1951,20 +1995,29 @@ async function checkAgentActivityNow(): Promise<void> {
 
     const active = await readActiveWindow().catch(() => null);
     if (!active || !isAgentLikeWindow(active.appName, active.windowTitle)) return;
+    const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
     if (titleLooksBusy(active.windowTitle)) {
       agentLastWorkingAt = Date.now();
       showAgentWorkingPose({
-        source: "Codex",
+        source: activeSource,
         message: "Agent is working",
         timestampMs: Date.now()
       });
     }
-    if (titleLooksDone(active.windowTitle) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
-      showAgentWorkingPose({
-        source: "Codex",
-        message: "Agent may need review",
+    if ((titleLooksDone(active.windowTitle) || titleLooksFailed(active.windowTitle)) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
+      const isFailed = titleLooksFailed(active.windowTitle);
+      const needsReview = /waiting for input|needs review|等待输入|需要处理|需要确认/i.test(active.windowTitle);
+      const event: AgentMonitorEvent = {
+        id: `${activeSource}:${active.appName}:${hashText(active.windowTitle)}:window-${isFailed ? "failed" : "done"}`,
+        source: activeSource,
+        sessionKey: `${activeSource}:active-window`,
+        kind: isFailed ? "failed" : needsReview ? "needs-review" : "complete",
+        message: isFailed ? "Agent failed" : needsReview ? "Agent may need review" : "Agent completed",
+        progressKind: isFailed ? "failed" : needsReview ? "review" : "complete",
+        state: isFailed ? "failed" : needsReview ? "reviewing" : "waving",
         timestampMs: Date.now()
-      });
+      };
+      if (!agentSeenEventIds.has(event.id) && notifyAgentEvent(event)) rememberAgentEvent(event.id);
     }
   } catch {
     // Local agent state is best-effort; missing logs or permissions should stay quiet.

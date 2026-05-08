@@ -1,4 +1,6 @@
-import { nativeImage, nativeTheme } from "electron";
+import electron from "electron";
+
+const { nativeImage, nativeTheme } = electron;
 
 function imageFromPath(path: string, template: boolean): Electron.NativeImage | null {
   const image = nativeImage.createFromPath(path);

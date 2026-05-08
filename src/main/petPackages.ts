@@ -11,8 +11,10 @@ import {
 } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
-import { app, dialog } from "electron";
+import electron from "electron";
 import type { InstalledPet, PetImportResult, PetPackageManifest } from "../shared/types";
+
+const { app, dialog } = electron;
 
 const MIN_SPRITE_SIZE = 256;
 

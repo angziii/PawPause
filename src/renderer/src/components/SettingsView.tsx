@@ -830,6 +830,18 @@ export function SettingsView(): JSX.Element {
           }
         />
         <Row
+          label={labels.enableAgentCompletionSound}
+          control={
+            <ToggleControl
+              checked={draft.agentCompletionSoundEnabled}
+              onChange={(agentCompletionSoundEnabled) =>
+                updateDraft({ agentCompletionSoundEnabled })
+              }
+              ariaLabel={labels.enableAgentCompletionSound}
+            />
+          }
+        />
+        <Row
           label={labels.enableDistractionDetection}
           hint={
             draft.distractionDetectionEnabled
