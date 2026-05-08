@@ -1394,7 +1394,12 @@ function scheduleDistractionDetection(): void {
 
 function isAgentLikeWindow(appName: string, title: string): boolean {
   const target = `${appName} ${title}`;
-  return /codex|claude|cursor|terminal|iterm|warp|vscode|visual studio code/i.test(target);
+  return /codex|claude|cursor|antigravity|terminal|iterm|warp|vscode|visual studio code|chrome|safari|edge|brave|arc/i.test(target);
+}
+
+function sourceFromAgentWindow(appName: string, title: string): AgentSource {
+  const target = `${appName} ${title}`;
+  return /claude/i.test(target) ? "Claude Code" : "Codex";
 }
 
 function titleLooksBusy(title: string): boolean {
@@ -1407,6 +1412,10 @@ function titleLooksDone(title: string): boolean {
   return /complete|completed|finished|done|success|ready|waiting for input|needs review|changes applied|任务完成|完成|已完成|等待输入|成功/.test(
     title.toLowerCase()
   );
+}
+
+function titleLooksFailed(title: string): boolean {
+  return /failed|failure|error|blocked|crashed|报错|失败|错误|无法继续/.test(title.toLowerCase());
 }
 
 function execFileText(file: string, args: string[]): Promise<string> {
@@ -1986,20 +1995,29 @@ async function checkAgentActivityNow(): Promise<void> {
 
     const active = await readActiveWindow().catch(() => null);
     if (!active || !isAgentLikeWindow(active.appName, active.windowTitle)) return;
+    const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
     if (titleLooksBusy(active.windowTitle)) {
       agentLastWorkingAt = Date.now();
       showAgentWorkingPose({
-        source: "Codex",
+        source: activeSource,
         message: "Agent is working",
         timestampMs: Date.now()
       });
     }
-    if (titleLooksDone(active.windowTitle) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
-      showAgentWorkingPose({
-        source: "Codex",
-        message: "Agent may need review",
+    if ((titleLooksDone(active.windowTitle) || titleLooksFailed(active.windowTitle)) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
+      const isFailed = titleLooksFailed(active.windowTitle);
+      const needsReview = /waiting for input|needs review|等待输入|需要处理|需要确认/i.test(active.windowTitle);
+      const event: AgentMonitorEvent = {
+        id: `${activeSource}:${active.appName}:${hashText(active.windowTitle)}:window-${isFailed ? "failed" : "done"}`,
+        source: activeSource,
+        sessionKey: `${activeSource}:active-window`,
+        kind: isFailed ? "failed" : needsReview ? "needs-review" : "complete",
+        message: isFailed ? "Agent failed" : needsReview ? "Agent may need review" : "Agent completed",
+        progressKind: isFailed ? "failed" : needsReview ? "review" : "complete",
+        state: isFailed ? "failed" : needsReview ? "reviewing" : "waving",
         timestampMs: Date.now()
-      });
+      };
+      if (!agentSeenEventIds.has(event.id) && notifyAgentEvent(event)) rememberAgentEvent(event.id);
     }
   } catch {
     // Local agent state is best-effort; missing logs or permissions should stay quiet.
