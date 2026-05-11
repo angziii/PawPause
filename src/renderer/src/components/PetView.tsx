@@ -57,6 +57,7 @@ export function PetView(): JSX.Element {
   const selectedPetId = snapshot.settings.selectedPetId;
   const asset = getSelectedPetAsset(selectedPetId, snapshot.settings.installedPets, state);
   const lyricsModeEnabled = snapshot.settings.lyricsModeEnabled;
+  const bubbleClickActionId = !lyricsModeEnabled && !bubble?.actions?.length ? bubble?.clickActionId : undefined;
 
   function finishPointerDrag(clicked: boolean): void {
     const drag = dragRef.current;
@@ -150,23 +151,33 @@ export function PetView(): JSX.Element {
       }
     >
       {bubble ? (
-        <section className="speech-bubble">
-          <p>{bubble.message}</p>
-          {!lyricsModeEnabled && bubble.actions?.length ? (
-            <div className="bubble-actions">
-              {bubble.actions.map((action) => (
-                <button
-                  className={`bubble-button ${action.kind ?? "secondary"}`}
-                  key={action.id}
-                  onClick={() => window.pawpause.bubbleAction(action.id)}
-                  type="button"
-                >
-                  {action.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </section>
+        bubbleClickActionId ? (
+          <button
+            className="speech-bubble speech-bubble--button"
+            onClick={() => window.pawpause.bubbleAction(bubbleClickActionId)}
+            type="button"
+          >
+            <p>{bubble.message}</p>
+          </button>
+        ) : (
+          <section className="speech-bubble">
+            <p>{bubble.message}</p>
+            {!lyricsModeEnabled && bubble.actions?.length ? (
+              <div className="bubble-actions">
+                {bubble.actions.map((action) => (
+                  <button
+                    className={`bubble-button ${action.kind ?? "secondary"}`}
+                    key={action.id}
+                    onClick={() => window.pawpause.bubbleAction(action.id)}
+                    type="button"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </section>
+        )
       ) : null}
 
       {snapshot.focusActive ? (

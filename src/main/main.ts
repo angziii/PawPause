@@ -41,6 +41,7 @@ import {
   STORE_NAME
 } from "./config";
 import { classifyDistraction, isPermissionError, readActiveWindow } from "./distraction";
+import type { ActiveWindowInfo } from "./distraction";
 import {
   chooseAndImportPet,
   discoverInstalledPets,
@@ -106,6 +107,13 @@ type AgentMonitorEvent = {
   timestampMs: number;
   showProgress?: boolean;
 };
+type AgentWindowTarget = {
+  source: AgentSource;
+  sessionKey: string;
+  appName: string;
+  windowTitle: string;
+  observedAt: number;
+};
 
 app.setName(APP_NAME);
 
@@ -167,12 +175,15 @@ let petLayout: PetLayout = {
 };
 let ambientRoamDirection: "left" | "right" = "right";
 let ambientRoamSpeed = 2.4;
-let agentLastWorkingAt: number | null = null;
 let agentLastNotificationAt = 0;
 let agentLastProgressBubbleAt = 0;
 let agentMonitorPrimed = false;
 const agentSeenEventIds = new Set<string>();
 const agentActiveSessions = new Map<string, number>();
+const agentSessionSources = new Map<string, AgentSource>();
+const agentBubbleActionSessions = new Map<string, string>();
+const agentWindowTargets = new Map<string, AgentWindowTarget>();
+const recentAgentWindowTargets: AgentWindowTarget[] = [];
 const claudeSessionStatuses = new Map<string, string>();
 let ambientPoseActiveState: PetState | null = null;
 let agentPoseActiveState: PetState | null = null;
@@ -1417,14 +1428,227 @@ function scheduleDistractionDetection(): void {
   }, firstCheckDelay);
 }
 
-function isAgentLikeWindow(appName: string, title: string): boolean {
+function sourceFromAgentWindow(appName: string, title: string): AgentSource | null {
   const target = `${appName} ${title}`;
-  return /codex|claude|cursor|antigravity|terminal|iterm|warp|vscode|visual studio code|chrome|safari|edge|brave|arc/i.test(target);
+  if (/\bclaude(?:\s+code)?\b/i.test(target)) return "Claude Code";
+  if (/\bcodex\b/i.test(target)) return "Codex";
+  return null;
 }
 
-function sourceFromAgentWindow(appName: string, title: string): AgentSource {
-  const target = `${appName} ${title}`;
-  return /claude/i.test(target) ? "Claude Code" : "Codex";
+function sourceFromSessionKey(sessionKey: string): AgentSource | null {
+  if (sessionKey.startsWith("Claude Code:")) return "Claude Code";
+  if (sessionKey.startsWith("Codex:")) return "Codex";
+  return null;
+}
+
+function activeWindowAgentSessionKey(source: AgentSource, appName: string): string {
+  const appKey = appName.trim().toLowerCase() || "unknown-app";
+  return `${source}:active-window:${appKey}`;
+}
+
+function appleScriptString(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+function agentWindowsScript(): string {
+  return `
+set previousDelimiters to AppleScript's text item delimiters
+set rowDelimiter to ASCII character 30
+set fieldDelimiter to ASCII character 31
+set rows to {}
+tell application "System Events"
+  repeat with appProcess in application processes
+    set appName to name of appProcess
+    if appName is not "PawPause" and appName is not "PawPal" and appName is not "Electron" then
+      try
+        repeat with appWindow in windows of appProcess
+          set windowTitle to ""
+          try
+            set windowTitle to name of appWindow
+          end try
+          if windowTitle is not "" then
+            set end of rows to appName & fieldDelimiter & windowTitle
+          end if
+        end repeat
+      end try
+    end if
+  end repeat
+end tell
+set AppleScript's text item delimiters to rowDelimiter
+set output to rows as text
+set AppleScript's text item delimiters to previousDelimiters
+return output
+`;
+}
+
+async function readAgentWindows(): Promise<AgentWindowTarget[]> {
+  if (process.platform !== "darwin") return [];
+  const output = await execFileText("/usr/bin/osascript", ["-e", agentWindowsScript()]);
+  const rows = output
+    .trim()
+    .split(String.fromCharCode(30))
+    .map((row) => row.split(String.fromCharCode(31)))
+    .filter((parts): parts is [string, string] => parts.length >= 2);
+
+  return rows
+    .map(([appName, windowTitle]) => {
+      const source = sourceFromAgentWindow(appName, windowTitle);
+      if (!source) return null;
+      return {
+        source,
+        sessionKey: `${source}:window-scan`,
+        appName: appName.trim(),
+        windowTitle: windowTitle.trim(),
+        observedAt: Date.now()
+      };
+    })
+    .filter((target): target is AgentWindowTarget => Boolean(target));
+}
+
+function rememberAgentSession(event: Pick<AgentMonitorEvent, "sessionKey" | "source">): void {
+  agentSessionSources.set(event.sessionKey, event.source);
+}
+
+function rememberAgentWindowTarget(
+  event: Pick<AgentMonitorEvent, "sessionKey" | "source">,
+  active: ActiveWindowInfo
+): void {
+  const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
+  if (activeSource !== event.source) return;
+  const target: AgentWindowTarget = {
+    source: event.source,
+    sessionKey: event.sessionKey,
+    appName: active.appName,
+    windowTitle: active.windowTitle,
+    observedAt: Date.now()
+  };
+  agentWindowTargets.set(event.sessionKey, target);
+  recentAgentWindowTargets.unshift(target);
+  if (recentAgentWindowTargets.length > 30) recentAgentWindowTargets.length = 30;
+}
+
+function registerAgentBubbleAction(
+  event: Pick<AgentMonitorEvent, "sessionKey" | "source" | "timestampMs">
+): string {
+  rememberAgentSession(event);
+  const actionId = `agent:open:${hashText(event.sessionKey)}:${event.timestampMs}`;
+  agentBubbleActionSessions.set(actionId, event.sessionKey);
+  while (agentBubbleActionSessions.size > 50) {
+    const first = agentBubbleActionSessions.keys().next().value;
+    if (typeof first !== "string") break;
+    agentBubbleActionSessions.delete(first);
+  }
+  return actionId;
+}
+
+function normalizeWindowText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, " ").trim();
+}
+
+function titleSimilarityScore(left: string, right: string): number {
+  const normalizedLeft = normalizeWindowText(left);
+  const normalizedRight = normalizeWindowText(right);
+  if (!normalizedLeft || !normalizedRight) return 0;
+  if (normalizedLeft === normalizedRight) return 120;
+  if (normalizedLeft.includes(normalizedRight) || normalizedRight.includes(normalizedLeft)) return 80;
+  const leftTokens = new Set(normalizedLeft.split(" ").filter((token) => token.length >= 4));
+  const rightTokens = normalizedRight.split(" ").filter((token) => token.length >= 4);
+  return rightTokens.reduce((score, token) => score + (leftTokens.has(token) ? 8 : 0), 0);
+}
+
+function sessionPathTokens(sessionKey: string): string[] {
+  const source = sourceFromSessionKey(sessionKey);
+  if (!source) return [];
+  const raw = sessionKey.slice(source.length + 1);
+  return raw
+    .split(/[\\/_.:-]+/)
+    .flatMap((part) => part.split("-"))
+    .map((part) => part.toLowerCase())
+    .filter((part) => part.length >= 4 && !/^\d+$/.test(part))
+    .slice(-8);
+}
+
+function scoreAgentWindow(
+  sessionKey: string,
+  source: AgentSource,
+  windowTarget: AgentWindowTarget,
+  knownTarget: AgentWindowTarget | undefined
+): number {
+  if (windowTarget.source !== source) return 0;
+  let score = 40;
+  if (knownTarget) {
+    if (windowTarget.appName === knownTarget.appName) score += 60;
+    score += titleSimilarityScore(windowTarget.windowTitle, knownTarget.windowTitle);
+  }
+  const activePrefix = `${source}:active-window:`;
+  if (sessionKey.startsWith(activePrefix)) {
+    const appKey = sessionKey.slice(activePrefix.length);
+    if (windowTarget.appName.trim().toLowerCase() === appKey) score += 80;
+  }
+  const normalizedTitle = normalizeWindowText(`${windowTarget.appName} ${windowTarget.windowTitle}`);
+  for (const token of sessionPathTokens(sessionKey)) {
+    if (normalizedTitle.includes(token)) score += 10;
+  }
+  return score;
+}
+
+async function resolveAgentWindowTarget(sessionKey: string): Promise<AgentWindowTarget | null> {
+  const source = agentSessionSources.get(sessionKey) ?? sourceFromSessionKey(sessionKey);
+  if (!source) return null;
+  const windows = await readAgentWindows();
+  const knownTarget = agentWindowTargets.get(sessionKey);
+  const recentTarget = recentAgentWindowTargets.find((target) => target.sessionKey === sessionKey);
+  const preferredTarget = knownTarget ?? recentTarget;
+  const scored = windows
+    .map((windowTarget) => ({
+      windowTarget,
+      score: scoreAgentWindow(sessionKey, source, windowTarget, preferredTarget)
+    }))
+    .filter((candidate) => candidate.score > 0)
+    .sort((left, right) => right.score - left.score);
+  return scored[0]?.windowTarget ?? null;
+}
+
+function focusAgentWindowScript(target: Pick<AgentWindowTarget, "appName" | "windowTitle">): string {
+  return `
+set targetAppName to ${appleScriptString(target.appName)}
+set targetWindowTitle to ${appleScriptString(target.windowTitle)}
+tell application "System Events"
+  repeat with appProcess in application processes
+    if name of appProcess is targetAppName then
+      set frontmost of appProcess to true
+      repeat with appWindow in windows of appProcess
+        set windowTitle to ""
+        try
+          set windowTitle to name of appWindow
+        end try
+        if windowTitle is targetWindowTitle then
+          try
+            perform action "AXRaise" of appWindow
+          end try
+          try
+            set value of attribute "AXMain" of appWindow to true
+          end try
+          try
+            set focused of appWindow to true
+          end try
+          return "focused"
+        end if
+      end repeat
+    end if
+  end repeat
+end tell
+return "missing"
+`;
+}
+
+async function focusAgentWindowForAction(actionId: string): Promise<void> {
+  const sessionKey = agentBubbleActionSessions.get(actionId);
+  if (!sessionKey || process.platform !== "darwin") return;
+  const target = await resolveAgentWindowTarget(sessionKey);
+  if (!target) return;
+  await execFileText("/usr/bin/osascript", ["-e", focusAgentWindowScript(target)]);
+  hideBubble();
 }
 
 function titleLooksBusy(title: string): boolean {
@@ -1459,9 +1683,12 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function eventTimeMs(value: unknown): number {
-  const parsed = Date.parse(stringValue(value));
-  return Number.isFinite(parsed) ? parsed : Date.now();
+function eventTimeMs(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const raw = stringValue(value);
+  if (!raw) return null;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function hashText(input: string): string {
@@ -1750,6 +1977,7 @@ function collectCodexSessionEvents(): AgentMonitorEvent[] {
       const payload = asRecord(line.payload);
       if (!payload) continue;
       const timestampMs = eventTimeMs(line.timestamp);
+      if (timestampMs === null) continue;
       const payloadType = stringValue(payload.type);
 
       if (payloadType === "message") {
@@ -1789,6 +2017,7 @@ function collectClaudeSessionEvents(): AgentMonitorEvent[] {
   for (const file of files) {
     for (const line of parseJsonLinesTail(file)) {
       const timestampMs = eventTimeMs(line.timestamp);
+      if (timestampMs === null) continue;
       if (line.type === "last-prompt") {
         const prompt = stringValue(line.lastPrompt);
         const message = claudePromptProgressText(prompt);
@@ -1917,8 +2146,11 @@ function clearAgentPose(restoreState: boolean): void {
   agentPoseActiveState = null;
 }
 
-function showAgentWorkingPose(event: Pick<AgentMonitorEvent, "source" | "message" | "progressKind" | "timestampMs">): void {
+function showAgentWorkingPose(
+  event: Pick<AgentMonitorEvent, "source" | "sessionKey" | "message" | "progressKind" | "timestampMs">
+): void {
   if (blockingMode || focusActive) return;
+  rememberAgentSession(event);
   ensurePetWindowVisible();
   if (!petWindow?.isVisible()) return;
   stopAmbientRoam(false);
@@ -1932,6 +2164,7 @@ function showAgentWorkingPose(event: Pick<AgentMonitorEvent, "source" | "message
     showBubble({
       id: `agent-progress-${event.timestampMs}`,
       message: agentProgressMessage(event),
+      clickActionId: registerAgentBubbleAction(event),
       autoDismissMs: 3200
     });
   }
@@ -1946,6 +2179,7 @@ function showAgentWorkingPose(event: Pick<AgentMonitorEvent, "source" | "message
 
 function notifyAgentEvent(event: AgentMonitorEvent): boolean {
   if (blockingMode || currentBubble?.actions?.length) return false;
+  rememberAgentSession(event);
   const now = Date.now();
   if (now - agentLastNotificationAt < 7000) return false;
   agentLastNotificationAt = now;
@@ -1961,6 +2195,7 @@ function notifyAgentEvent(event: AgentMonitorEvent): boolean {
   showBubble({
     id: bubbleId,
     message: agentEventMessage(event),
+    clickActionId: registerAgentBubbleAction(event),
     autoDismissMs: displayMs
   });
   setTimeout(
@@ -1992,22 +2227,24 @@ async function checkAgentActivityNow(): Promise<void> {
 
     if (!agentMonitorPrimed) {
       const latestWorking = events.filter((event) => event.kind === "working").at(-1);
-      for (const event of events) rememberAgentEvent(event.id);
+      for (const event of events) {
+        rememberAgentSession(event);
+        rememberAgentEvent(event.id);
+      }
       agentMonitorPrimed = true;
       if (latestWorking && now - latestWorking.timestampMs < 30_000) {
         markAgentSessionWorking(latestWorking);
-        agentLastWorkingAt = Date.now();
         if (latestWorking.showProgress !== false) showAgentWorkingPose(latestWorking);
       }
       return;
     }
 
     for (const event of events) {
+      rememberAgentSession(event);
       if (agentSeenEventIds.has(event.id)) continue;
       if (event.kind === "working") {
         rememberAgentEvent(event.id);
         markAgentSessionWorking(event);
-        agentLastWorkingAt = Date.now();
         if (event.showProgress !== false) showAgentWorkingPose(event);
         continue;
       }
@@ -2019,29 +2256,42 @@ async function checkAgentActivityNow(): Promise<void> {
     }
 
     const active = await readActiveWindow().catch(() => null);
-    if (!active || !isAgentLikeWindow(active.appName, active.windowTitle)) return;
+    if (!active) return;
     const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
+    if (!activeSource) return;
+    const activeSessionKey = activeWindowAgentSessionKey(activeSource, active.appName);
     if (titleLooksBusy(active.windowTitle)) {
-      agentLastWorkingAt = Date.now();
-      showAgentWorkingPose({
+      const event: AgentMonitorEvent = {
+        id: `${activeSessionKey}:${hashText(active.windowTitle)}:window-working`,
         source: activeSource,
+        sessionKey: activeSessionKey,
+        kind: "working",
         message: "Agent is working",
+        progressKind: "working",
+        state: "thinking",
         timestampMs: Date.now()
-      });
+      };
+      rememberAgentWindowTarget(event, active);
+      markAgentSessionWorking(event);
+      showAgentWorkingPose(event);
     }
-    if ((titleLooksDone(active.windowTitle) || titleLooksFailed(active.windowTitle)) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
+    if (
+      (titleLooksDone(active.windowTitle) || titleLooksFailed(active.windowTitle)) &&
+      hasRecentAgentWork({ sessionKey: activeSessionKey })
+    ) {
       const isFailed = titleLooksFailed(active.windowTitle);
       const needsReview = /waiting for input|needs review|等待输入|需要处理|需要确认/i.test(active.windowTitle);
       const event: AgentMonitorEvent = {
-        id: `${activeSource}:${active.appName}:${hashText(active.windowTitle)}:window-${isFailed ? "failed" : "done"}`,
+        id: `${activeSessionKey}:${hashText(active.windowTitle)}:window-${isFailed ? "failed" : "done"}`,
         source: activeSource,
-        sessionKey: `${activeSource}:active-window`,
+        sessionKey: activeSessionKey,
         kind: isFailed ? "failed" : needsReview ? "needs-review" : "complete",
         message: isFailed ? "Agent failed" : needsReview ? "Agent may need review" : "Agent completed",
         progressKind: isFailed ? "failed" : needsReview ? "review" : "complete",
         state: isFailed ? "failed" : needsReview ? "reviewing" : "waving",
         timestampMs: Date.now()
       };
+      rememberAgentWindowTarget(event, active);
       if (!agentSeenEventIds.has(event.id) && notifyAgentEvent(event)) rememberAgentEvent(event.id);
     }
   } catch {
@@ -2326,6 +2576,10 @@ function triggerDemo(trigger: DemoTrigger): void {
 
 function handleBubbleAction(actionId: string): void {
   if (getSettings().lyricsModeEnabled) return;
+  if (actionId.startsWith("agent:open:")) {
+    void focusAgentWindowForAction(actionId);
+    return;
+  }
   if (actionId === "break-run:done") {
     finishBreakRun();
     return;

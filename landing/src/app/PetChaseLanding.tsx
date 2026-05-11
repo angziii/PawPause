@@ -7,6 +7,8 @@ const repoUrl = "https://github.com/angziii/PawPause";
 const latestReleaseUrl = `${repoUrl}/releases/latest`;
 const petdexUrl = "https://petdex.crafter.run/zh";
 const latestVersion = "v1.0.0";
+const starNudgeDurationMs = 8000;
+const starNudgeDurationSeconds = starNudgeDurationMs / 1000;
 
 const links = [
   { id: "download", href: latestReleaseUrl, primary: true },
@@ -31,6 +33,9 @@ type LandingCopy = {
   downloadSubtitle: string;
   downloadAll: string;
   closeDownload: string;
+  starNudge: string;
+  starNudgeCountdown: string;
+  starNudgeAria: string;
   prompts: string[];
 };
 
@@ -84,6 +89,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "根据你的系统下载最新版本。",
     downloadAll: "查看全部 Release",
     closeDownload: "关闭下载弹窗",
+    starNudge: "在 GitHub 点个星星支持我们吧。",
+    starNudgeCountdown: "{seconds} 秒后收回",
+    starNudgeAria: "打开 GitHub 给 PawPause 点星",
     prompts: [
       "Codex 正在思考",
       "Claude Code 正在调用工具",
@@ -111,6 +119,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Download the latest build for your system.",
     downloadAll: "View all releases",
     closeDownload: "Close download dialog",
+    starNudge: "Star us on GitHub to support PawPause.",
+    starNudgeCountdown: "Retracts in {seconds}s",
+    starNudgeAria: "Open GitHub to star PawPause",
     prompts: [
       "Codex is thinking",
       "Claude Code is using a tool",
@@ -138,6 +149,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "お使いの環境向けの最新版をダウンロード。",
     downloadAll: "すべてのリリースを見る",
     closeDownload: "ダウンロードダイアログを閉じる",
+    starNudge: "GitHub で星をつけて応援してください。",
+    starNudgeCountdown: "{seconds}秒で戻ります",
+    starNudgeAria: "GitHub を開いて PawPause に星をつける",
     prompts: [
       "Codex が考えています",
       "Claude Code がツールを使用中",
@@ -165,6 +179,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "시스템에 맞는 최신 버전을 다운로드하세요.",
     downloadAll: "모든 릴리스 보기",
     closeDownload: "다운로드 창 닫기",
+    starNudge: "GitHub에서 별을 눌러 응원해 주세요.",
+    starNudgeCountdown: "{seconds}초 후 접힘",
+    starNudgeAria: "GitHub에서 PawPause에 별 주기",
     prompts: [
       "Codex 생각 중",
       "Claude Code 도구 사용 중",
@@ -192,6 +209,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Descarga la version mas reciente para tu sistema.",
     downloadAll: "Ver todas las versiones",
     closeDownload: "Cerrar dialogo de descarga",
+    starNudge: "Danos una estrella en GitHub para apoyarnos.",
+    starNudgeCountdown: "Se cierra en {seconds}s",
+    starNudgeAria: "Abrir GitHub para dar una estrella a PawPause",
     prompts: [
       "Codex está pensando",
       "Claude Code usa una herramienta",
@@ -219,6 +239,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Telecharge la derniere version pour ton systeme.",
     downloadAll: "Voir toutes les versions",
     closeDownload: "Fermer la fenetre de telechargement",
+    starNudge: "Ajoute une étoile sur GitHub pour nous soutenir.",
+    starNudgeCountdown: "Se replie dans {seconds}s",
+    starNudgeAria: "Ouvrir GitHub pour ajouter une étoile à PawPause",
     prompts: [
       "Codex réfléchit",
       "Claude Code utilise un outil",
@@ -246,6 +269,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Lade die neueste Version fur dein System herunter.",
     downloadAll: "Alle Versionen ansehen",
     closeDownload: "Download-Dialog schliessen",
+    starNudge: "Gib uns auf GitHub einen Stern zur Unterstützung.",
+    starNudgeCountdown: "Zieht sich in {seconds}s zurück",
+    starNudgeAria: "GitHub öffnen, um PawPause einen Stern zu geben",
     prompts: [
       "Codex denkt nach",
       "Claude Code nutzt ein Tool",
@@ -273,6 +299,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Скачайте последнюю версию для вашей системы.",
     downloadAll: "Все релизы",
     closeDownload: "Закрыть окно загрузки",
+    starNudge: "Поставьте звезду на GitHub, чтобы поддержать нас.",
+    starNudgeCountdown: "Свернется через {seconds} с",
+    starNudgeAria: "Открыть GitHub и поставить звезду PawPause",
     prompts: [
       "Codex думает",
       "Claude Code использует инструмент",
@@ -301,6 +330,9 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "حمّل أحدث نسخة لنظامك.",
     downloadAll: "عرض كل الإصدارات",
     closeDownload: "إغلاق نافذة التنزيل",
+    starNudge: "ادعمنا بنجمة على GitHub.",
+    starNudgeCountdown: "ينسحب خلال {seconds} ث",
+    starNudgeAria: "افتح GitHub لمنح PawPause نجمة",
     prompts: [
       "Codex يفكر",
       "Claude Code يستخدم أداة",
@@ -358,9 +390,12 @@ export default function PetChaseLanding() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [isStarNudgeVisible, setIsStarNudgeVisible] = useState(false);
+  const [starNudgeSeconds, setStarNudgeSeconds] = useState(starNudgeDurationSeconds);
   const [starCountLabel, setStarCountLabel] = useState("...");
   const [activePet, setActivePet] = useState<{ slug: string; promptIndex: number } | null>(null);
   const copy = copies[language];
+  const starNudgeCountdown = copy.starNudgeCountdown.replace("{seconds}", String(starNudgeSeconds));
   const [petdexPrefix, petdexSuffix] = copy.petdexLine2.split("PetDex");
   const primaryMobileLinks = links.filter((link) => link.id === "github" || link.id === "petdex");
   const secondaryMobileLinks = links.filter((link) => link.id !== "github" && link.id !== "petdex");
@@ -374,6 +409,25 @@ export default function PetChaseLanding() {
     return () => {
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const duration = starNudgeDurationMs;
+    const startedAt = Date.now();
+    setIsStarNudgeVisible(true);
+    setStarNudgeSeconds(starNudgeDurationSeconds);
+
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startedAt)) / 1000));
+      setStarNudgeSeconds(remaining);
+
+      if (remaining <= 0) {
+        setIsStarNudgeVisible(false);
+        window.clearInterval(timer);
+      }
+    }, 250);
+
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -506,6 +560,31 @@ export default function PetChaseLanding() {
 
   return (
     <main className="page-shell" dir={copy.dir ?? "ltr"}>
+      <a
+        aria-hidden={!isStarNudgeVisible}
+        aria-label={copy.starNudgeAria}
+        className={isStarNudgeVisible ? "star-nudge is-visible" : "star-nudge"}
+        href={repoUrl}
+        rel="noreferrer"
+        target="_blank"
+        tabIndex={isStarNudgeVisible ? 0 : -1}
+      >
+        <span className="star-nudge__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M12 .5a12 12 0 0 0-3.79 23.39c.6.1.82-.25.82-.57l-.01-2.01c-3.34.72-4.04-1.42-4.04-1.42-.55-1.37-1.33-1.73-1.33-1.73-1.1-.74.08-.73.08-.73 1.21.09 1.85 1.22 1.85 1.22 1.08 1.82 2.83 1.3 3.52.99.11-.77.42-1.3.77-1.59-2.67-.3-5.47-1.31-5.47-5.82 0-1.28.46-2.33 1.22-3.15-.12-.3-.53-1.52.11-3.16 0 0 .99-.31 3.24 1.2a11.3 11.3 0 0 1 5.9 0c2.25-1.51 3.24-1.2 3.24-1.2.64 1.64.23 2.86.11 3.16.76.82 1.22 1.87 1.22 3.15 0 4.52-2.8 5.51-5.48 5.81.43.37.82 1.09.82 2.2l-.01 3.26c0 .32.22.68.83.57A12 12 0 0 0 12 .5Z"
+              fill="currentColor"
+            />
+          </svg>
+        </span>
+        <span className="star-nudge__body">
+          <span className="star-nudge__message">{copy.starNudge}</span>
+          <span className="star-nudge__countdown" aria-live="polite">
+            {starNudgeCountdown}
+          </span>
+        </span>
+        <span className="star-nudge__meter" aria-hidden="true" />
+      </a>
       <section className="hero-stage" aria-label="PawPause interactive pet playground">
         <nav className="topbar" aria-label="PawPause links" ref={topbarRef}>
           <div className="desktop-nav-links">

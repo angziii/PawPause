@@ -289,6 +289,7 @@ textarea {
 }
 
 .speech-bubble {
+  appearance: none;
   background: rgba(255, 252, 244, 0.96);
   border: 1px solid rgba(76, 57, 39, 0.14);
   border-radius: 16px;
@@ -303,6 +304,26 @@ textarea {
   pointer-events: auto;
   transform: translateX(-50%);
   z-index: 2;
+}
+
+.speech-bubble--button {
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.speech-bubble--button:hover {
+  border-color: rgba(36, 78, 69, 0.28);
+  box-shadow: 0 10px 24px rgba(45, 38, 31, 0.1);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.speech-bubble--button:focus-visible {
+  outline: 2px solid #244e45;
+  outline-offset: 3px;
 }
 
 .pet-shell.is-screen-block .speech-bubble {
