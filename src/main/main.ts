@@ -167,7 +167,6 @@ let petLayout: PetLayout = {
 };
 let ambientRoamDirection: "left" | "right" = "right";
 let ambientRoamSpeed = 2.4;
-let agentLastWorkingAt: number | null = null;
 let agentLastNotificationAt = 0;
 let agentLastProgressBubbleAt = 0;
 let agentMonitorPrimed = false;
@@ -1392,14 +1391,16 @@ function scheduleDistractionDetection(): void {
   }, firstCheckDelay);
 }
 
-function isAgentLikeWindow(appName: string, title: string): boolean {
+function sourceFromAgentWindow(appName: string, title: string): AgentSource | null {
   const target = `${appName} ${title}`;
-  return /codex|claude|cursor|antigravity|terminal|iterm|warp|vscode|visual studio code|chrome|safari|edge|brave|arc/i.test(target);
+  if (/\bclaude(?:\s+code)?\b/i.test(target)) return "Claude Code";
+  if (/\bcodex\b/i.test(target)) return "Codex";
+  return null;
 }
 
-function sourceFromAgentWindow(appName: string, title: string): AgentSource {
-  const target = `${appName} ${title}`;
-  return /claude/i.test(target) ? "Claude Code" : "Codex";
+function activeWindowAgentSessionKey(source: AgentSource, appName: string): string {
+  const appKey = appName.trim().toLowerCase() || "unknown-app";
+  return `${source}:active-window:${appKey}`;
 }
 
 function titleLooksBusy(title: string): boolean {
@@ -1434,9 +1435,12 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-function eventTimeMs(value: unknown): number {
-  const parsed = Date.parse(stringValue(value));
-  return Number.isFinite(parsed) ? parsed : Date.now();
+function eventTimeMs(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const raw = stringValue(value);
+  if (!raw) return null;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function hashText(input: string): string {
@@ -1725,6 +1729,7 @@ function collectCodexSessionEvents(): AgentMonitorEvent[] {
       const payload = asRecord(line.payload);
       if (!payload) continue;
       const timestampMs = eventTimeMs(line.timestamp);
+      if (timestampMs === null) continue;
       const payloadType = stringValue(payload.type);
 
       if (payloadType === "message") {
@@ -1764,6 +1769,7 @@ function collectClaudeSessionEvents(): AgentMonitorEvent[] {
   for (const file of files) {
     for (const line of parseJsonLinesTail(file)) {
       const timestampMs = eventTimeMs(line.timestamp);
+      if (timestampMs === null) continue;
       if (line.type === "last-prompt") {
         const prompt = stringValue(line.lastPrompt);
         const message = claudePromptProgressText(prompt);
@@ -1971,7 +1977,6 @@ async function checkAgentActivityNow(): Promise<void> {
       agentMonitorPrimed = true;
       if (latestWorking && now - latestWorking.timestampMs < 30_000) {
         markAgentSessionWorking(latestWorking);
-        agentLastWorkingAt = Date.now();
         if (latestWorking.showProgress !== false) showAgentWorkingPose(latestWorking);
       }
       return;
@@ -1982,7 +1987,6 @@ async function checkAgentActivityNow(): Promise<void> {
       if (event.kind === "working") {
         rememberAgentEvent(event.id);
         markAgentSessionWorking(event);
-        agentLastWorkingAt = Date.now();
         if (event.showProgress !== false) showAgentWorkingPose(event);
         continue;
       }
@@ -1994,23 +1998,34 @@ async function checkAgentActivityNow(): Promise<void> {
     }
 
     const active = await readActiveWindow().catch(() => null);
-    if (!active || !isAgentLikeWindow(active.appName, active.windowTitle)) return;
+    if (!active) return;
     const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
+    if (!activeSource) return;
+    const activeSessionKey = activeWindowAgentSessionKey(activeSource, active.appName);
     if (titleLooksBusy(active.windowTitle)) {
-      agentLastWorkingAt = Date.now();
-      showAgentWorkingPose({
+      const event: AgentMonitorEvent = {
+        id: `${activeSessionKey}:${hashText(active.windowTitle)}:window-working`,
         source: activeSource,
+        sessionKey: activeSessionKey,
+        kind: "working",
         message: "Agent is working",
+        progressKind: "working",
+        state: "thinking",
         timestampMs: Date.now()
-      });
+      };
+      markAgentSessionWorking(event);
+      showAgentWorkingPose(event);
     }
-    if ((titleLooksDone(active.windowTitle) || titleLooksFailed(active.windowTitle)) && agentLastWorkingAt && now - agentLastWorkingAt < 20_000) {
+    if (
+      (titleLooksDone(active.windowTitle) || titleLooksFailed(active.windowTitle)) &&
+      hasRecentAgentWork({ sessionKey: activeSessionKey })
+    ) {
       const isFailed = titleLooksFailed(active.windowTitle);
       const needsReview = /waiting for input|needs review|等待输入|需要处理|需要确认/i.test(active.windowTitle);
       const event: AgentMonitorEvent = {
-        id: `${activeSource}:${active.appName}:${hashText(active.windowTitle)}:window-${isFailed ? "failed" : "done"}`,
+        id: `${activeSessionKey}:${hashText(active.windowTitle)}:window-${isFailed ? "failed" : "done"}`,
         source: activeSource,
-        sessionKey: `${activeSource}:active-window`,
+        sessionKey: activeSessionKey,
         kind: isFailed ? "failed" : needsReview ? "needs-review" : "complete",
         message: isFailed ? "Agent failed" : needsReview ? "Agent may need review" : "Agent completed",
         progressKind: isFailed ? "failed" : needsReview ? "review" : "complete",
