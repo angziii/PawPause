@@ -73,6 +73,12 @@ textarea {
   width: calc(192px * var(--pet-render-scale));
 }
 
+.pet-shell.is-lyrics-mode .pet-button,
+.pet-shell.is-lyrics-mode .speech-bubble {
+  cursor: default;
+  pointer-events: none;
+}
+
 .pet-shell.is-screen-block .pet-button {
   height: 100vh;
   width: 100vw;

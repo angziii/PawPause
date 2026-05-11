@@ -280,6 +280,10 @@ function getSettings(): Settings {
       1,
       12
     ),
+    lyricsModeEnabled:
+      typeof stored.lyricsModeEnabled === "boolean"
+        ? stored.lyricsModeEnabled
+        : DEFAULT_SETTINGS.lyricsModeEnabled,
     screenBlockDurationSeconds: normalizeNumber(
       stored.screenBlockDurationSeconds,
       DEFAULT_SETTINGS.screenBlockDurationSeconds,
@@ -320,6 +324,7 @@ function setSettings(next: Settings): void {
     petRoamFrequencySeconds: normalizeNumber(next.petRoamFrequencySeconds, 18, 5, 180),
     petRoamDurationSeconds: normalizeNumber(next.petRoamDurationSeconds, 5, 1, 30),
     petIdleMotionSeconds: normalizeNumber(next.petIdleMotionSeconds, 3.2, 1, 12),
+    lyricsModeEnabled: Boolean(next.lyricsModeEnabled),
     screenBlockDurationSeconds: normalizeNumber(next.screenBlockDurationSeconds, 120, 15, 600),
     screenBlockCoverageRatio: normalizeNumber(next.screenBlockCoverageRatio, 0.4, 0.35, 1),
     agentActivityEnabled: Boolean(next.agentActivityEnabled),
@@ -327,6 +332,8 @@ function setSettings(next: Settings): void {
     installedPets: mergeInstalledPets(next.installedPets)
   };
   store.set("settings", normalized);
+  if (normalized.lyricsModeEnabled) stopPetDrag();
+  updatePetWindowMouseEvents(normalized.lyricsModeEnabled);
   resizePetWindowForScale(normalized.petScale);
   sendToAll("settings:updated", normalized);
   settingsWindow?.setTitle(`${APP_NAME} ${text().menu.settings}`);
@@ -525,6 +532,15 @@ function setPetFacing(next: PetFacing): void {
   publishSnapshot();
 }
 
+function updatePetWindowMouseEvents(lyricsModeEnabled = getSettings().lyricsModeEnabled): void {
+  if (!petWindow || petWindow.isDestroyed()) return;
+  if (lyricsModeEnabled) {
+    petWindow.setIgnoreMouseEvents(true, { forward: true });
+    return;
+  }
+  petWindow.setIgnoreMouseEvents(false);
+}
+
 function showBubble(bubble: SpeechBubble): void {
   if (bubbleTimer) clearTimeout(bubbleTimer);
   currentBubble = bubble;
@@ -657,6 +673,7 @@ function showPetWindowInactive(): void {
     petWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
   petWindow.setAlwaysOnTop(true, process.platform === "darwin" ? "floating" : "normal");
+  updatePetWindowMouseEvents();
   updateTrayMenu();
   sendPetLayout();
   publishSnapshot();
@@ -847,6 +864,7 @@ function updateTrayMenu(): void {
 }
 
 function showPetContextMenu(): void {
+  if (getSettings().lyricsModeEnabled) return;
   const labels = text().menu;
   const template: Electron.MenuItemConstructorOptions[] = [
     { label: labels.settings, click: createSettingsWindow },
@@ -893,7 +911,14 @@ function movePetWithCursor(): void {
 }
 
 function startPetDrag(offset: { offsetX: number; offsetY: number }): void {
-  if (blockingMode === "breakRun" || !petWindow || petWindow.isDestroyed()) return;
+  if (
+    getSettings().lyricsModeEnabled ||
+    blockingMode === "breakRun" ||
+    !petWindow ||
+    petWindow.isDestroyed()
+  ) {
+    return;
+  }
   stopAmbientRoam(false);
   stopAmbientPose(true);
   dragOffset = {
@@ -2300,6 +2325,7 @@ function triggerDemo(trigger: DemoTrigger): void {
 }
 
 function handleBubbleAction(actionId: string): void {
+  if (getSettings().lyricsModeEnabled) return;
   if (actionId === "break-run:done") {
     finishBreakRun();
     return;
@@ -2422,7 +2448,7 @@ function registerIpc(): void {
   ipcMain.on("break:start-screen-block", startBreakRun);
   ipcMain.on("break:end-screen-block", finishBreakRun);
   ipcMain.on("pet:clicked", () => {
-    if (blockingMode) return;
+    if (blockingMode || getSettings().lyricsModeEnabled) return;
     randomPetClickReaction();
   });
   ipcMain.on("pet:context-menu", showPetContextMenu);

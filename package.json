@@ -66,6 +66,10 @@
       {
         "from": "build/trayTemplate.png",
         "to": "trayTemplate.png"
+      },
+      {
+        "from": "petdex_pets",
+        "to": "petdex_pets"
       }
     ]
   },

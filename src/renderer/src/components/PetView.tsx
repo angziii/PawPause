@@ -56,6 +56,7 @@ export function PetView(): JSX.Element {
       : "facing-right";
   const selectedPetId = snapshot.settings.selectedPetId;
   const asset = getSelectedPetAsset(selectedPetId, snapshot.settings.installedPets, state);
+  const lyricsModeEnabled = snapshot.settings.lyricsModeEnabled;
 
   function finishPointerDrag(clicked: boolean): void {
     const drag = dragRef.current;
@@ -79,6 +80,13 @@ export function PetView(): JSX.Element {
       window.removeEventListener("blur", cancelActiveDrag);
     };
   }, []);
+
+  useEffect(() => {
+    if (!lyricsModeEnabled) return;
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (drag?.dragging) window.pawpause.petDragStop();
+  }, [lyricsModeEnabled]);
 
   function startPointer(event: PointerEvent<HTMLButtonElement>): void {
     if (event.button !== 0) return;
@@ -119,7 +127,7 @@ export function PetView(): JSX.Element {
 
   return (
     <main
-      className={`pet-shell${snapshot.screenBlockActive ? " is-screen-block" : ""}`}
+      className={`pet-shell${snapshot.screenBlockActive ? " is-screen-block" : ""}${lyricsModeEnabled ? " is-lyrics-mode" : ""}`}
       aria-label="PawPause desktop pet"
       dir={resolveLanguage(snapshot.settings.language) === "ar" ? "rtl" : "ltr"}
       style={
@@ -132,15 +140,19 @@ export function PetView(): JSX.Element {
           "--bubble-arrow-x": `${layout.bubbleArrowX}px`
         } as CSSProperties
       }
-      onContextMenu={(event) => {
-        event.preventDefault();
-        window.pawpause.petContextMenu();
-      }}
+      onContextMenu={
+        lyricsModeEnabled
+          ? undefined
+          : (event) => {
+              event.preventDefault();
+              window.pawpause.petContextMenu();
+            }
+      }
     >
       {bubble ? (
         <section className="speech-bubble">
           <p>{bubble.message}</p>
-          {bubble.actions?.length ? (
+          {!lyricsModeEnabled && bubble.actions?.length ? (
             <div className="bubble-actions">
               {bubble.actions.map((action) => (
                 <button
@@ -173,11 +185,13 @@ export function PetView(): JSX.Element {
 
       <button
         className={`pet-button state-${state} ${facingClass}`}
-        onPointerCancel={cancelPointer}
-        onPointerDown={startPointer}
-        onLostPointerCapture={() => finishPointerDrag(false)}
-        onPointerMove={movePointer}
-        onPointerUp={stopPointer}
+        aria-disabled={lyricsModeEnabled}
+        onPointerCancel={lyricsModeEnabled ? undefined : cancelPointer}
+        onPointerDown={lyricsModeEnabled ? undefined : startPointer}
+        onLostPointerCapture={lyricsModeEnabled ? undefined : () => finishPointerDrag(false)}
+        onPointerMove={lyricsModeEnabled ? undefined : movePointer}
+        onPointerUp={lyricsModeEnabled ? undefined : stopPointer}
+        tabIndex={lyricsModeEnabled ? -1 : 0}
         type="button"
       >
         {asset.kind === "sprite" ? (

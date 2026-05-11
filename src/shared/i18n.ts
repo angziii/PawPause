@@ -189,6 +189,8 @@ const CORE_I18N = {
       petRoamFrequency: "跑动频率",
       petRoamDuration: "跑动时长",
       petIdleMotionFrequency: "原地动作频率",
+      enableLyricsMode: "歌词模式",
+      lyricsModeHelp: "开启后桌宠和气泡只显示，不接收点击或拖拽。",
       importPet: "导入宠物包",
       importPetHint:
         "支持 pet.json + spritesheet.webp/png 的文件夹或 zip。应用内导入会保存到 PawPause 数据目录；现有 npx petdex install 写入的 ~/.codex/pets 也会自动读取。",
@@ -436,6 +438,8 @@ const CORE_I18N = {
       petRoamFrequency: "Run Frequency",
       petRoamDuration: "Run Duration",
       petIdleMotionFrequency: "Idle Motion Frequency",
+      enableLyricsMode: "Lyrics Mode",
+      lyricsModeHelp: "Keeps the pet and speech bubbles visible while ignoring clicks and dragging.",
       importPet: "Import Pet Package",
       importPetHint:
         "Supports a folder or zip with pet.json + spritesheet.webp/png. In-app imports are saved in PawPause app data; existing npx petdex install pets in ~/.codex/pets are still detected.",
@@ -1111,6 +1115,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "移動頻度",
     petRoamDuration: "移動時間",
     petIdleMotionFrequency: "待機アクション頻度",
+    enableLyricsMode: "歌詞モード",
+    lyricsModeHelp: "オンにするとペットと吹き出しは表示のみになり、クリックやドラッグを受け付けません。",
     importPet: "ペットパッケージをインポート",
     importPetHint:
       "pet.json と spritesheet.webp/png を含むフォルダまたは zip に対応。アプリ内インポートは PawPause のデータフォルダに保存され、既存の ~/.codex/pets も読み込みます。",
@@ -1218,6 +1224,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "이동 빈도",
     petRoamDuration: "이동 시간",
     petIdleMotionFrequency: "대기 동작 빈도",
+    enableLyricsMode: "가사 모드",
+    lyricsModeHelp: "켜면 펫과 말풍선은 표시만 되고 클릭이나 드래그를 받지 않습니다.",
     importPet: "펫 패키지 가져오기",
     importPetHint:
       "pet.json 및 spritesheet.webp/png가 있는 폴더나 zip을 지원합니다. 앱 가져오기는 PawPause 데이터 폴더에 저장하고 기존 ~/.codex/pets도 읽습니다.",
@@ -1324,6 +1332,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Frecuencia",
     petRoamDuration: "Duración",
     petIdleMotionFrequency: "Frecuencia en reposo",
+    enableLyricsMode: "Modo letras",
+    lyricsModeHelp: "Mantiene la mascota y los globos visibles, pero ignora clics y arrastres.",
     importPet: "Importar paquete de mascota",
     importPetHint:
       "Admite carpeta o zip con pet.json y spritesheet.webp/png. La importación guarda en los datos de PawPause y también lee ~/.codex/pets.",
@@ -1430,6 +1440,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Fréquence",
     petRoamDuration: "Durée",
     petIdleMotionFrequency: "Fréquence au repos",
+    enableLyricsMode: "Mode paroles",
+    lyricsModeHelp: "Garde le compagnon et les bulles visibles, sans accepter les clics ni le glisser.",
     importPet: "Importer un compagnon",
     importPetHint:
       "Prend en charge un dossier ou zip avec pet.json et spritesheet.webp/png. L'import enregistre dans les données PawPause et lit aussi ~/.codex/pets.",
@@ -1536,6 +1548,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "تكرار الحركة",
     petRoamDuration: "مدة الحركة",
     petIdleMotionFrequency: "تكرار حركة الانتظار",
+    enableLyricsMode: "وضع الكلمات",
+    lyricsModeHelp: "يعرض الشخصية والفقاعات فقط، من دون استقبال النقر أو السحب.",
     importPet: "استيراد حزمة شخصية",
     importPetHint:
       "يدعم مجلدا أو ملف zip يحتوي على pet.json و spritesheet.webp/png. يحفظ الاستيراد داخل بيانات PawPause ويقرأ أيضا ~/.codex/pets.",
@@ -1642,6 +1656,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Lauffrequenz",
     petRoamDuration: "Laufdauer",
     petIdleMotionFrequency: "Leerlaufbewegung",
+    enableLyricsMode: "Lyrics-Modus",
+    lyricsModeHelp: "Zeigt Figur und Sprechblasen nur an und ignoriert Klicks sowie Ziehen.",
     importPet: "Figurenpaket importieren",
     importPetHint:
       "Unterstützt Ordner oder zip mit pet.json und spritesheet.webp/png. Der Import speichert in PawPause-Daten und liest weiterhin ~/.codex/pets.",
@@ -1748,6 +1764,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Частота движения",
     petRoamDuration: "Длительность движения",
     petIdleMotionFrequency: "Частота действий в покое",
+    enableLyricsMode: "Режим lyrics",
+    lyricsModeHelp: "Показывает персонажа и подсказки, но игнорирует клики и перетаскивание.",
     importPet: "Импортировать персонажа",
     importPetHint:
       "Поддерживает папку или zip с pet.json и spritesheet.webp/png. Импорт сохраняет данные PawPause и также читает ~/.codex/pets.",

@@ -94,6 +94,7 @@ export type Settings = {
   petRoamFrequencySeconds: number;
   petRoamDurationSeconds: number;
   petIdleMotionSeconds: number;
+  lyricsModeEnabled: boolean;
   selectedPetId: string;
   installedPets: InstalledPet[];
   onboardingDismissed: boolean;
