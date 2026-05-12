@@ -84,7 +84,7 @@ const AGENT_ACTIVITY_CHECK_INTERVAL_MS = 5000;
 const AGENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
 
-type AgentSource = "Codex" | "Claude Code";
+type AgentSource = "Codex" | "Claude Code" | "OpenCode";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
 type AgentProgressKind =
   | "working"
@@ -1432,12 +1432,14 @@ function sourceFromAgentWindow(appName: string, title: string): AgentSource | nu
   const target = `${appName} ${title}`;
   if (/\bclaude(?:\s+code)?\b/i.test(target)) return "Claude Code";
   if (/\bcodex\b/i.test(target)) return "Codex";
+  if (/\bopen\s*code\b|\bopencode\b/i.test(target)) return "OpenCode";
   return null;
 }
 
 function sourceFromSessionKey(sessionKey: string): AgentSource | null {
   if (sessionKey.startsWith("Claude Code:")) return "Claude Code";
   if (sessionKey.startsWith("Codex:")) return "Codex";
+  if (sessionKey.startsWith("OpenCode:")) return "OpenCode";
   return null;
 }
 
@@ -1966,6 +1968,174 @@ function makeAgentEvent(
   };
 }
 
+function uniqueStrings(values: Array<string | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+function openCodeHookEventFiles(): string[] {
+  const home = app.getPath("home");
+  return uniqueStrings([
+    process.env.PAWPAUSE_AGENT_EVENTS,
+    join(home, ".local", "share", "pawpause", "agent-events", "opencode.jsonl"),
+    join(home, "Library", "Application Support", "PawPause", "agent-events", "opencode.jsonl"),
+    join(home, "AppData", "Roaming", "PawPause", "agent-events", "opencode.jsonl")
+  ]).filter((file) => existsSync(file));
+}
+
+function agentEventKind(value: string): AgentEventKind | null {
+  if (value === "complete" || value === "failed" || value === "needs-review" || value === "working") {
+    return value;
+  }
+  return null;
+}
+
+function agentProgressKind(value: string): AgentProgressKind | undefined {
+  if (
+    value === "working" ||
+    value === "thinking" ||
+    value === "tool" ||
+    value === "script" ||
+    value === "choice" ||
+    value === "permission" ||
+    value === "review" ||
+    value === "complete" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function stateForAgentEvent(kind: AgentEventKind, progressKind?: AgentProgressKind): PetState {
+  if (kind === "failed") return "failed";
+  if (kind === "needs-review") return "reviewing";
+  if (kind === "complete") return "waving";
+  if (progressKind === "tool" || progressKind === "script" || progressKind === "thinking") return "thinking";
+  return "thinking";
+}
+
+function normalizeOpenCodeRawEvent(
+  record: Record<string, unknown>
+): Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs"> | null {
+  const type = stringValue(record.type);
+  const message = stringValue(record.message);
+
+  if (type === "session.idle") {
+    return {
+      kind: "complete",
+      message: message || "OpenCode session is idle",
+      progressKind: "complete",
+      state: "waving"
+    };
+  }
+
+  if (type === "session.next.step.started") {
+    return {
+      kind: "working",
+      message: message || "OpenCode is working",
+      progressKind: "thinking",
+      state: "thinking"
+    };
+  }
+
+  if (
+    type === "session.next.tool.called" ||
+    type === "session.next.tool.input.started" ||
+    type === "tool.execute.before"
+  ) {
+    const tool = stringValue(record.tool);
+    return {
+      kind: "working",
+      message: tool || message || "OpenCode is using a tool",
+      progressKind: classifyAgentProgressKind(tool || message || "tool", "tool"),
+      state: "thinking"
+    };
+  }
+
+  if (type === "session.next.shell.started") {
+    return {
+      kind: "working",
+      message: stringValue(record.command) || message || "OpenCode is running a command",
+      progressKind: "script",
+      state: "thinking"
+    };
+  }
+
+  if (type === "permission.asked" || type === "permission.ask") {
+    return {
+      kind: "needs-review",
+      message: message || "OpenCode needs permission",
+      progressKind: "permission",
+      state: "reviewing"
+    };
+  }
+
+  if (type === "question.asked") {
+    return {
+      kind: "needs-review",
+      message: message || "OpenCode needs a choice",
+      progressKind: "choice",
+      state: "reviewing"
+    };
+  }
+
+  if (type === "session.error" || type === "session.next.step.failed") {
+    return {
+      kind: "failed",
+      message: message || "OpenCode ran into a problem",
+      progressKind: "failed",
+      state: "failed"
+    };
+  }
+
+  return null;
+}
+
+function normalizeOpenCodeHookEvent(record: Record<string, unknown>, file: string): AgentMonitorEvent | null {
+  const timestampMs =
+    typeof record.timestampMs === "number" && Number.isFinite(record.timestampMs)
+      ? record.timestampMs
+      : typeof record.timestamp === "number" && Number.isFinite(record.timestamp)
+        ? record.timestamp
+        : null;
+  if (timestampMs === null) return null;
+
+  const rawKind = agentEventKind(stringValue(record.kind));
+  const progressKind = agentProgressKind(stringValue(record.progressKind));
+  const classified =
+    rawKind === null
+      ? normalizeOpenCodeRawEvent(record)
+      : {
+          kind: rawKind,
+          message: stringValue(record.message) || "OpenCode updated",
+          progressKind,
+          state: stateForAgentEvent(rawKind, progressKind)
+        };
+  if (!classified) return null;
+
+  const sessionID = stringValue(record.sessionID) || stringValue(record.sessionId) || "unknown";
+  const rawId = stringValue(record.id) || `${sessionID}:${timestampMs}:${classified.kind}:${hashText(classified.message)}`;
+  return {
+    ...classified,
+    id: `OpenCode:${rawId}`,
+    source: "OpenCode",
+    sessionKey: `OpenCode:${sessionID || file}`,
+    timestampMs,
+    showProgress: record.showProgress === false ? false : undefined
+  };
+}
+
+function collectOpenCodeHookEvents(): AgentMonitorEvent[] {
+  const events: AgentMonitorEvent[] = [];
+  for (const file of openCodeHookEventFiles()) {
+    for (const line of parseJsonLinesTail(file)) {
+      const event = normalizeOpenCodeHookEvent(line, file);
+      if (event) events.push(event);
+    }
+  }
+  return events;
+}
+
 function collectCodexSessionEvents(): AgentMonitorEvent[] {
   const sessionsRoot = join(app.getPath("home"), ".codex", "sessions");
   const files = listRecentFiles(sessionsRoot, ".jsonl", 4);
@@ -2220,7 +2390,8 @@ async function checkAgentActivityNow(): Promise<void> {
     const events = [
       ...collectCodexSessionEvents(),
       ...collectClaudeSessionEvents(),
-      ...collectClaudeStatusEvents()
+      ...collectClaudeStatusEvents(),
+      ...collectOpenCodeHookEvents()
     ]
       .filter((event) => event.timestampMs >= newestAllowedAt && event.timestampMs <= now + 30_000)
       .sort((left, right) => left.timestampMs - right.timestampMs);
