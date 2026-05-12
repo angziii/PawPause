@@ -143,6 +143,133 @@ a {
   background: var(--green);
 }
 
+.star-nudge {
+  position: fixed;
+  top: 50%;
+  right: clamp(12px, 2vw, 24px);
+  z-index: 12;
+  width: min(292px, calc(100vw - 28px));
+  min-height: 104px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 17px 15px 22px 12px;
+  border: 2px solid var(--line);
+  background:
+    linear-gradient(var(--soft-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--soft-line) 1px, transparent 1px),
+    var(--paper);
+  background-size: 18px 18px;
+  color: var(--ink);
+  font-family: var(--font-pixel);
+  box-shadow:
+    6px 6px 0 var(--yellow),
+    12px 12px 0 var(--line);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(100% + 42px)) translateY(-50%);
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease;
+}
+
+.star-nudge.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0) translateY(-50%);
+}
+
+.star-nudge:hover {
+  background:
+    linear-gradient(var(--soft-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--soft-line) 1px, transparent 1px),
+    #fff;
+  transform: translateX(-3px) translateY(-50%) translateY(-2px);
+}
+
+.star-nudge__icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  background: var(--green);
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+.star-nudge__icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.star-nudge__body {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.star-nudge__message {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.22;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.star-nudge__countdown {
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1.5px solid var(--line);
+  background: var(--yellow);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.star-nudge__meter {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 7px;
+  border-top: 2px solid var(--line);
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.star-nudge.is-visible .star-nudge__meter {
+  animation: star-nudge-meter 8s linear forwards;
+}
+
+[dir="rtl"] .star-nudge {
+  grid-template-columns: minmax(0, 1fr) 46px;
+  padding-right: 15px;
+  padding-left: 12px;
+}
+
+[dir="rtl"] .star-nudge__icon {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+[dir="rtl"] .star-nudge__body {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+[dir="rtl"] .star-nudge__meter {
+  transform-origin: right center;
+}
+
 .download-layer {
   position: fixed;
   inset: 0;
@@ -758,6 +885,16 @@ h1 {
   }
 }
 
+@keyframes star-nudge-meter {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @media (max-width: 860px) {
   .hero-stage {
     min-height: 78svh;
@@ -911,6 +1048,53 @@ h1 {
     font-size: 0.8rem;
   }
 
+  .star-nudge {
+    top: 52%;
+    right: 10px;
+    width: min(322px, calc(100vw - 20px));
+    min-height: 94px;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+    padding: 15px 13px 20px 10px;
+    box-shadow:
+      4px 4px 0 var(--yellow),
+      8px 8px 0 var(--line);
+    transform: translateX(calc(100% + 24px)) translateY(-50%);
+  }
+
+  .star-nudge.is-visible {
+    transform: translateX(0) translateY(-50%);
+  }
+
+  .star-nudge:hover {
+    transform: translateX(0) translateY(-50%);
+  }
+
+  .star-nudge__icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .star-nudge__icon svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .star-nudge__message {
+    font-size: 0.9rem;
+  }
+
+  .star-nudge__countdown {
+    min-height: 22px;
+    font-size: 0.72rem;
+  }
+
+  [dir="rtl"] .star-nudge {
+    grid-template-columns: minmax(0, 1fr) 42px;
+    padding-right: 13px;
+    padding-left: 10px;
+  }
+
   .language-picker--panel {
     width: 100%;
     min-width: 0;
@@ -1000,5 +1184,14 @@ h1 {
 
   .download-option {
     transition: none;
+  }
+
+  .star-nudge {
+    transition: none;
+  }
+
+  .star-nudge.is-visible .star-nudge__meter {
+    animation: none;
+    transform: scaleX(0);
   }
 }

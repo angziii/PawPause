@@ -657,6 +657,17 @@ export function SettingsView(): JSX.Element {
                 />
               }
             />
+            <Row
+              label={labels.enableLyricsMode}
+              hint={labels.lyricsModeHelp}
+              control={
+                <ToggleControl
+                  checked={draft.lyricsModeEnabled}
+                  onChange={(lyricsModeEnabled) => updateDraft({ lyricsModeEnabled })}
+                  ariaLabel={labels.enableLyricsMode}
+                />
+              }
+            />
         <div className="pref-block">
             <span className="pref-block__label">{labels.petMotion}</span>
             <Row

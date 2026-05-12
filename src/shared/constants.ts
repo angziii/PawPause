@@ -2,14 +2,15 @@ import type { Settings, TodayStats } from "./types";
 
 export const DEFAULT_SETTINGS: Settings = {
   language: "zh-CN",
-  petAppearanceId: "boxcat",
+  petAppearanceId: "duo",
   petScale: 1,
   petRoamEnabled: true,
   petRoamDirection: "both",
   petRoamFrequencySeconds: 18,
   petRoamDurationSeconds: 5,
   petIdleMotionSeconds: 3.2,
-  selectedPetId: "boxcat",
+  lyricsModeEnabled: false,
+  selectedPetId: "duo",
   installedPets: [],
   onboardingDismissed: false,
   breakReminderEnabled: true,

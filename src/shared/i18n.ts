@@ -96,7 +96,7 @@ const CORE_I18N = {
       ],
       agentDone: [
         "你的 Agent 好像完成啦，去看一眼吧",
-        "Codex/Claude 那边可能收工了",
+        "Codex/Claude/OpenCode 那边可能收工了",
         "工作结果出来啦，看看要不要接着处理"
       ],
       agentWorking: [
@@ -189,6 +189,8 @@ const CORE_I18N = {
       petRoamFrequency: "跑动频率",
       petRoamDuration: "跑动时长",
       petIdleMotionFrequency: "原地动作频率",
+      enableLyricsMode: "歌词模式",
+      lyricsModeHelp: "开启后桌宠和气泡只显示，不接收点击或拖拽。",
       importPet: "导入宠物包",
       importPetHint:
         "支持 pet.json + spritesheet.webp/png 的文件夹或 zip。应用内导入会保存到 PawPause 数据目录；现有 npx petdex install 写入的 ~/.codex/pets 也会自动读取。",
@@ -273,7 +275,7 @@ const CORE_I18N = {
       detectionErrorHelp: "活动窗口检测暂时失败。请检查权限后，重新开启分心检测或重启应用。",
       detectionPreviewHelp: "正在预览当前活动窗口。开始专注后，命中规则会触发分心提醒。",
       detectionFocusHelp: "专注期间正在检测。命中屏蔽应用或关键词会触发分心提醒。",
-      agentActivityHelp: "监听 Codex 和 Claude Code 的本地会话事件，只在完成、失败或需要处理时提醒。"
+      agentActivityHelp: "监听 Codex、Claude Code 和 OpenCode 的本地会话事件，只在完成、失败或需要处理时提醒。"
     },
     system: {
       unsupportedDistraction: "分心检测目前仅支持 macOS。"
@@ -343,7 +345,7 @@ const CORE_I18N = {
       ],
       agentDone: [
         "Your agent looks done. Take a look?",
-        "Codex or Claude may have finished.",
+        "Codex, Claude, or OpenCode may have finished.",
         "The result is ready. Want to review it?"
       ],
       agentWorking: [
@@ -436,6 +438,8 @@ const CORE_I18N = {
       petRoamFrequency: "Run Frequency",
       petRoamDuration: "Run Duration",
       petIdleMotionFrequency: "Idle Motion Frequency",
+      enableLyricsMode: "Lyrics Mode",
+      lyricsModeHelp: "Keeps the pet and speech bubbles visible while ignoring clicks and dragging.",
       importPet: "Import Pet Package",
       importPetHint:
         "Supports a folder or zip with pet.json + spritesheet.webp/png. In-app imports are saved in PawPause app data; existing npx petdex install pets in ~/.codex/pets are still detected.",
@@ -525,7 +529,7 @@ const CORE_I18N = {
       detectionFocusHelp:
         "Watching during Focus. Matched blocked apps or keywords will trigger a distraction nudge.",
       agentActivityHelp:
-        "Watches local Codex and Claude Code session events, and only nudges on completion, failure, or review-needed items."
+        "Watches local Codex, Claude Code, and OpenCode events, and only nudges on completion, failure, or review-needed items."
     },
     system: {
       unsupportedDistraction: "Distraction detection currently supports macOS only."
@@ -1111,6 +1115,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "移動頻度",
     petRoamDuration: "移動時間",
     petIdleMotionFrequency: "待機アクション頻度",
+    enableLyricsMode: "歌詞モード",
+    lyricsModeHelp: "オンにするとペットと吹き出しは表示のみになり、クリックやドラッグを受け付けません。",
     importPet: "ペットパッケージをインポート",
     importPetHint:
       "pet.json と spritesheet.webp/png を含むフォルダまたは zip に対応。アプリ内インポートは PawPause のデータフォルダに保存され、既存の ~/.codex/pets も読み込みます。",
@@ -1195,7 +1201,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "アクティブウィンドウ検出に失敗しました。権限を確認してから再度有効化するか、アプリを再起動してください。",
     detectionPreviewHelp: "現在のアクティブウィンドウをプレビュー中です。集中を開始すると一致したルールで通知します。",
     detectionFocusHelp: "集中中に監視しています。ブロック対象のアプリやキーワードに一致すると通知します。",
-    agentActivityHelp: "Codex と Claude Code のローカルセッションイベントを監視し、完了・失敗・確認が必要な時だけ通知します。"
+    agentActivityHelp: "Codex、Claude Code、OpenCode のローカルセッションイベントを監視し、完了・失敗・確認が必要な時だけ通知します。"
   },
   ko: {
     title: "설정",
@@ -1218,6 +1224,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "이동 빈도",
     petRoamDuration: "이동 시간",
     petIdleMotionFrequency: "대기 동작 빈도",
+    enableLyricsMode: "가사 모드",
+    lyricsModeHelp: "켜면 펫과 말풍선은 표시만 되고 클릭이나 드래그를 받지 않습니다.",
     importPet: "펫 패키지 가져오기",
     importPetHint:
       "pet.json 및 spritesheet.webp/png가 있는 폴더나 zip을 지원합니다. 앱 가져오기는 PawPause 데이터 폴더에 저장하고 기존 ~/.codex/pets도 읽습니다.",
@@ -1301,7 +1309,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "활성 창 감지에 실패했습니다. 권한을 확인한 뒤 다시 켜거나 앱을 재시작하세요.",
     detectionPreviewHelp: "현재 활성 창을 미리 보는 중입니다. 집중을 시작하면 일치한 규칙이 방해 알림을 발생시킵니다.",
     detectionFocusHelp: "집중 중 감지하고 있습니다. 차단 앱 또는 키워드와 일치하면 방해 알림을 표시합니다.",
-    agentActivityHelp: "Codex 및 Claude Code 로컬 세션 이벤트를 감시하고 완료, 실패, 확인 필요 상황에서만 알려줍니다."
+    agentActivityHelp: "Codex, Claude Code, OpenCode 로컬 세션 이벤트를 감시하고 완료, 실패, 확인 필요 상황에서만 알려줍니다."
   },
   es: {
     title: "Ajustes",
@@ -1324,6 +1332,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Frecuencia",
     petRoamDuration: "Duración",
     petIdleMotionFrequency: "Frecuencia en reposo",
+    enableLyricsMode: "Modo letras",
+    lyricsModeHelp: "Mantiene la mascota y los globos visibles, pero ignora clics y arrastres.",
     importPet: "Importar paquete de mascota",
     importPetHint:
       "Admite carpeta o zip con pet.json y spritesheet.webp/png. La importación guarda en los datos de PawPause y también lee ~/.codex/pets.",
@@ -1407,7 +1417,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "La detección de ventana activa falló. Revisa permisos y vuelve a activarla o reinicia la app.",
     detectionPreviewHelp: "Previsualizando la ventana activa. Inicia Enfoque para recibir avisos al coincidir con reglas.",
     detectionFocusHelp: "Vigilando durante el enfoque. Las apps o palabras bloqueadas activarán un aviso.",
-    agentActivityHelp: "Vigila eventos locales de Codex y Claude Code, y solo avisa al terminar, fallar o requerir revisión."
+    agentActivityHelp: "Vigila eventos locales de Codex, Claude Code y OpenCode, y solo avisa al terminar, fallar o requerir revisión."
   },
   fr: {
     title: "Réglages",
@@ -1430,6 +1440,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Fréquence",
     petRoamDuration: "Durée",
     petIdleMotionFrequency: "Fréquence au repos",
+    enableLyricsMode: "Mode paroles",
+    lyricsModeHelp: "Garde le compagnon et les bulles visibles, sans accepter les clics ni le glisser.",
     importPet: "Importer un compagnon",
     importPetHint:
       "Prend en charge un dossier ou zip avec pet.json et spritesheet.webp/png. L'import enregistre dans les données PawPause et lit aussi ~/.codex/pets.",
@@ -1513,7 +1525,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "La détection de fenêtre active a échoué. Vérifie les permissions puis réactive-la ou redémarre l'app.",
     detectionPreviewHelp: "Prévisualisation de la fenêtre active. Démarre la concentration pour déclencher les règles correspondantes.",
     detectionFocusHelp: "Surveillance pendant la concentration. Les apps ou mots-clés bloqués déclenchent un rappel.",
-    agentActivityHelp: "Surveille les événements locaux Codex et Claude Code et ne signale que les fins, échecs ou éléments à revoir."
+    agentActivityHelp: "Surveille les événements locaux Codex, Claude Code et OpenCode et ne signale que les fins, échecs ou éléments à revoir."
   },
   ar: {
     title: "الإعدادات",
@@ -1536,6 +1548,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "تكرار الحركة",
     petRoamDuration: "مدة الحركة",
     petIdleMotionFrequency: "تكرار حركة الانتظار",
+    enableLyricsMode: "وضع الكلمات",
+    lyricsModeHelp: "يعرض الشخصية والفقاعات فقط، من دون استقبال النقر أو السحب.",
     importPet: "استيراد حزمة شخصية",
     importPetHint:
       "يدعم مجلدا أو ملف zip يحتوي على pet.json و spritesheet.webp/png. يحفظ الاستيراد داخل بيانات PawPause ويقرأ أيضا ~/.codex/pets.",
@@ -1619,7 +1633,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "فشل كشف النافذة النشطة. تحقق من الأذونات ثم فعّل الكشف أو أعد تشغيل التطبيق.",
     detectionPreviewHelp: "تتم معاينة النافذة النشطة. ابدأ التركيز لتفعيل التنبيهات عند مطابقة القواعد.",
     detectionFocusHelp: "تتم المراقبة أثناء التركيز. التطبيقات أو الكلمات المحظورة ستطلق تنبيهًا.",
-    agentActivityHelp: "يراقب أحداث جلسات Codex و Claude Code المحلية، وينبه فقط عند الاكتمال أو الفشل أو الحاجة إلى مراجعة."
+    agentActivityHelp: "يراقب أحداث Codex و Claude Code و OpenCode المحلية، وينبه فقط عند الاكتمال أو الفشل أو الحاجة إلى مراجعة."
   },
   de: {
     title: "Einstellungen",
@@ -1642,6 +1656,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Lauffrequenz",
     petRoamDuration: "Laufdauer",
     petIdleMotionFrequency: "Leerlaufbewegung",
+    enableLyricsMode: "Lyrics-Modus",
+    lyricsModeHelp: "Zeigt Figur und Sprechblasen nur an und ignoriert Klicks sowie Ziehen.",
     importPet: "Figurenpaket importieren",
     importPetHint:
       "Unterstützt Ordner oder zip mit pet.json und spritesheet.webp/png. Der Import speichert in PawPause-Daten und liest weiterhin ~/.codex/pets.",
@@ -1725,7 +1741,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "Aktive Fenstererkennung ist fehlgeschlagen. Prüfe Berechtigungen, aktiviere sie erneut oder starte die App neu.",
     detectionPreviewHelp: "Aktives Fenster wird geprüft. Starte Fokus, damit passende Regeln Hinweise auslösen.",
     detectionFocusHelp: "Überwachung während Fokus. Blockierte Apps oder Keywords lösen einen Hinweis aus.",
-    agentActivityHelp: "Überwacht lokale Codex- und Claude-Code-Sitzungen und meldet nur Abschluss, Fehler oder Review-Bedarf."
+    agentActivityHelp: "Überwacht lokale Codex-, Claude-Code- und OpenCode-Ereignisse und meldet nur Abschluss, Fehler oder Review-Bedarf."
   },
   ru: {
     title: "Настройки",
@@ -1748,6 +1764,8 @@ const LOCALIZED_SETTINGS = {
     petRoamFrequency: "Частота движения",
     petRoamDuration: "Длительность движения",
     petIdleMotionFrequency: "Частота действий в покое",
+    enableLyricsMode: "Режим lyrics",
+    lyricsModeHelp: "Показывает персонажа и подсказки, но игнорирует клики и перетаскивание.",
     importPet: "Импортировать персонажа",
     importPetHint:
       "Поддерживает папку или zip с pet.json и spritesheet.webp/png. Импорт сохраняет данные PawPause и также читает ~/.codex/pets.",
@@ -1831,7 +1849,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "Не удалось определить активное окно. Проверь разрешения, включи проверку снова или перезапусти приложение.",
     detectionPreviewHelp: "Предпросмотр активного окна. Запусти фокус, чтобы совпавшие правила вызывали предупреждения.",
     detectionFocusHelp: "Идет проверка во время фокуса. Блокируемые приложения или слова вызовут предупреждение.",
-    agentActivityHelp: "Следит за локальными событиями Codex и Claude Code и сообщает только о завершении, ошибках или необходимости ревью."
+    agentActivityHelp: "Следит за локальными событиями Codex, Claude Code и OpenCode и сообщает только о завершении, ошибках или необходимости ревью."
   }
 } as const;
 

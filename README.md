@@ -43,7 +43,7 @@ PawPause is a macOS and Windows desktop companion. It keeps a small pixel friend
 - **Break intervention**: optional screen-block break mode when a reminder is easy to ignore.
 - **Hydration reminders**: water reminders with daily and historical stats.
 - **Focus mode**: macOS active-window detection can trigger full-screen distraction nudges for blocked apps or keywords.
-- **Agent activity alerts**: local Codex / Claude Code session events can trigger completion, failure, review-needed, and progress nudges.
+- **Agent activity alerts**: local Codex, Claude Code, and OpenCode events can trigger completion, failure, review-needed, and progress nudges.
 - **Pet imports**: import `pet.json + spritesheet.webp/png` folders or zip packages in the app.
 - **PetDex compatibility**: PawPause reads companions installed to `~/.codex/pets`.
 - **Multilingual UI**: English, Chinese, Japanese, Korean, French, German, Russian, Arabic, and Spanish.
@@ -60,6 +60,17 @@ Download installers from [Releases](https://github.com/angziii/PawPause/releases
 | `PawPause-x.x.x-win-x64.exe` | Windows 64-bit |
 
 On macOS, distraction detection and Agent window recognition require Accessibility permission.
+
+## OpenCode Agent Hook
+
+PawPause can consume OpenCode lifecycle events through a small OpenCode plugin:
+
+```bash
+mkdir -p ~/.config/opencode/plugins
+cp integrations/opencode/pawpause-agent-hook.js ~/.config/opencode/plugins/
+```
+
+The plugin writes JSONL events to `~/.local/share/pawpause/agent-events/opencode.jsonl`. You can override that path with `PAWPAUSE_AGENT_EVENTS`.
 
 ## Import Companions
 
