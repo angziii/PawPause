@@ -109,7 +109,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "Language",
     nav: { download: "Download", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "A pixel companion for breaks, water, focus, and live Codex, Claude Code, OpenCode, and DeepSeek TUI activity nudges.",
+    hero: "PawPause is a pixel desktop companion for macOS and Windows. It helps with breaks, water, focus, and live Codex, Claude Code, OpenCode, and DeepSeek TUI activity nudges.",
     localFirst: "Local first. No account needed.",
     petdexLine1: "Compatible with the Codex pet format.",
     petdexLine2: "Download more from PetDex.",
@@ -759,8 +759,17 @@ export default function PetChaseLanding() {
       </section>
 
       <footer className="footer">
-        <span>PawPause by angziii</span>
-        <span>{copy.release}</span>
+        <div className="footer-brand">
+          <span>PawPause by angziii</span>
+          <span>{copy.release}</span>
+        </div>
+        <nav className="footer-links" aria-label="PawPause trust and support links">
+          <a href="/about">About</a>
+          <a href="/support">Support</a>
+          <a href="/contact">Contact</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </nav>
       </footer>
 
       {isDownloadOpen ? (
