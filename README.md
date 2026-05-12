@@ -29,9 +29,11 @@
 </p>
 
 <p align="center">
-  <img alt="Downloads" src="https://img.shields.io/github/downloads/angziii/PawPause/total?style=flat-square&label=downloads" />
-  <img alt="Electron" src="https://img.shields.io/badge/Electron-vite-47848f?style=flat-square&logo=electron&logoColor=white" />
-  <img alt="React" src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=111111" />
+  <a href="https://github.com/angziii/PawPause/releases">
+    <img alt="Downloads" src="https://img.shields.io/github/downloads/angziii/PawPause/total?style=flat-square&amp;label=downloads&amp;logo=github" />
+  </a>
+  <img alt="Electron" src="https://img.shields.io/badge/Electron-vite-47848f?style=flat-square&amp;logo=electron&amp;logoColor=white" />
+  <img alt="React" src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&amp;logo=react&amp;logoColor=111111" />
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" />
 </p>
 
