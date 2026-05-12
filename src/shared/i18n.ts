@@ -194,6 +194,7 @@ const CORE_I18N = {
       importPet: "导入宠物包",
       importPetHint:
         "支持 pet.json + spritesheet.webp/png 的文件夹或 zip。应用内导入会保存到 PawPause 数据目录；现有 npx petdex install 写入的 ~/.codex/pets 也会自动读取。",
+      petdexDownloadCta: "想下载更多宠物？去 PetDex 社区看看。",
       importPetSuccess: "已导入宠物到 PawPause 数据目录",
       importPetError: "导入失败",
       screenBlock: "挡屏休息",
@@ -443,6 +444,7 @@ const CORE_I18N = {
       importPet: "Import Pet Package",
       importPetHint:
         "Supports a folder or zip with pet.json + spritesheet.webp/png. In-app imports are saved in PawPause app data; existing npx petdex install pets in ~/.codex/pets are still detected.",
+      petdexDownloadCta: "Want more pets? Download them from the PetDex community.",
       importPetSuccess: "Pet imported into PawPause app data",
       importPetError: "Import failed",
       screenBlock: "Screen Block Break",
@@ -1120,6 +1122,7 @@ const LOCALIZED_SETTINGS = {
     importPet: "ペットパッケージをインポート",
     importPetHint:
       "pet.json と spritesheet.webp/png を含むフォルダまたは zip に対応。アプリ内インポートは PawPause のデータフォルダに保存され、既存の ~/.codex/pets も読み込みます。",
+    petdexDownloadCta: "もっとペットが欲しい場合は PetDex コミュニティからダウンロードできます。",
     importPetSuccess: "ペットを PawPause データフォルダへインポートしました",
     importPetError: "インポート失敗",
     screenBlock: "画面ブロック休憩",
@@ -1229,6 +1232,7 @@ const LOCALIZED_SETTINGS = {
     importPet: "펫 패키지 가져오기",
     importPetHint:
       "pet.json 및 spritesheet.webp/png가 있는 폴더나 zip을 지원합니다. 앱 가져오기는 PawPause 데이터 폴더에 저장하고 기존 ~/.codex/pets도 읽습니다.",
+    petdexDownloadCta: "더 많은 펫은 PetDex 커뮤니티에서 다운로드하세요.",
     importPetSuccess: "펫을 PawPause 데이터 폴더로 가져왔습니다",
     importPetError: "가져오기 실패",
     screenBlock: "화면 차단 휴식",
@@ -1337,6 +1341,7 @@ const LOCALIZED_SETTINGS = {
     importPet: "Importar paquete de mascota",
     importPetHint:
       "Admite carpeta o zip con pet.json y spritesheet.webp/png. La importación guarda en los datos de PawPause y también lee ~/.codex/pets.",
+    petdexDownloadCta: "¿Quieres más mascotas? Descárgalas en la comunidad PetDex.",
     importPetSuccess: "Mascota importada en los datos de PawPause",
     importPetError: "Error al importar",
     screenBlock: "Pausa con bloqueo",
@@ -1445,6 +1450,7 @@ const LOCALIZED_SETTINGS = {
     importPet: "Importer un compagnon",
     importPetHint:
       "Prend en charge un dossier ou zip avec pet.json et spritesheet.webp/png. L'import enregistre dans les données PawPause et lit aussi ~/.codex/pets.",
+    petdexDownloadCta: "Envie de plus de compagnons ? Télécharge-les dans la communauté PetDex.",
     importPetSuccess: "Compagnon importé dans les données PawPause",
     importPetError: "Échec de l'import",
     screenBlock: "Pause avec blocage",
@@ -1553,6 +1559,7 @@ const LOCALIZED_SETTINGS = {
     importPet: "استيراد حزمة شخصية",
     importPetHint:
       "يدعم مجلدا أو ملف zip يحتوي على pet.json و spritesheet.webp/png. يحفظ الاستيراد داخل بيانات PawPause ويقرأ أيضا ~/.codex/pets.",
+    petdexDownloadCta: "تريد شخصيات أكثر؟ حمّلها من مجتمع PetDex.",
     importPetSuccess: "تم استيراد الشخصية إلى بيانات PawPause",
     importPetError: "فشل الاستيراد",
     screenBlock: "استراحة حجب الشاشة",
@@ -1661,6 +1668,7 @@ const LOCALIZED_SETTINGS = {
     importPet: "Figurenpaket importieren",
     importPetHint:
       "Unterstützt Ordner oder zip mit pet.json und spritesheet.webp/png. Der Import speichert in PawPause-Daten und liest weiterhin ~/.codex/pets.",
+    petdexDownloadCta: "Mehr Figuren findest du zum Download in der PetDex-Community.",
     importPetSuccess: "Figur in PawPause-Daten importiert",
     importPetError: "Import fehlgeschlagen",
     screenBlock: "Bildschirm-Pause",
@@ -1769,6 +1777,7 @@ const LOCALIZED_SETTINGS = {
     importPet: "Импортировать персонажа",
     importPetHint:
       "Поддерживает папку или zip с pet.json и spritesheet.webp/png. Импорт сохраняет данные PawPause и также читает ~/.codex/pets.",
+    petdexDownloadCta: "Хочешь больше персонажей? Скачай их в сообществе PetDex.",
     importPetSuccess: "Персонаж импортирован в данные PawPause",
     importPetError: "Ошибка импорта",
     screenBlock: "Перерыв с блокировкой экрана",

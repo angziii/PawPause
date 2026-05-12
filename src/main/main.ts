@@ -228,17 +228,19 @@ function visiblePetSize(scale: number): Pick<Electron.Rectangle, "width" | "heig
   };
 }
 
-function petWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
+function compactPetWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
   const petSize = visiblePetSize(scale);
-  if (currentBubble) {
-    return {
-      width: Math.max(BUBBLE_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING * 2),
-      height: petSize.height + BUBBLE_WINDOW_EXTRA_HEIGHT
-    };
-  }
   return {
     width: Math.max(44, petSize.width + PET_WINDOW_PADDING),
     height: Math.max(48, petSize.height + PET_WINDOW_PADDING)
+  };
+}
+
+function petWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
+  const petSize = visiblePetSize(scale);
+  return {
+    width: Math.max(BUBBLE_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING * 2),
+    height: petSize.height + BUBBLE_WINDOW_EXTRA_HEIGHT
   };
 }
 let preScreenBlockBounds: Electron.Rectangle | null = null;
@@ -555,9 +557,9 @@ function updatePetWindowMouseEvents(lyricsModeEnabled = getSettings().lyricsMode
 function showBubble(bubble: SpeechBubble): void {
   if (bubbleTimer) clearTimeout(bubbleTimer);
   currentBubble = bubble;
-  resizePetWindowForScale(getSettings().petScale);
-  sendPetLayout();
+  petLayout = layoutForPetAnchor(petWindow?.getBounds() ?? initialPetBounds());
   sendToPet("pet:show-bubble", bubble);
+  sendPetLayout();
   if (bubble.autoDismissMs) {
     bubbleTimer = setTimeout(() => hideBubble(), bubble.autoDismissMs);
   }
@@ -570,7 +572,7 @@ function hideBubble(): void {
   }
   currentBubble = null;
   sendToPet("pet:hide-bubble");
-  resizePetWindowForScale(getSettings().petScale);
+  petLayout = layoutForPetAnchor(petWindow?.getBounds() ?? initialPetBounds());
   sendPetLayout();
 }
 
@@ -619,27 +621,19 @@ function initialPetBounds(): Electron.Rectangle {
   };
 
   if (!stored) return fallback;
+  const compactSize = compactPetWindowSize();
   return clampBoundsToWorkArea({
     ...fallback,
-    x: stored.x,
-    y: stored.y
+    x: Math.round(stored.x + compactSize.width / 2 - size.width / 2),
+    y: stored.y + compactSize.height - size.height
   });
 }
 
 function persistPetPosition(): void {
   if (!petWindow || petWindow.isDestroyed()) return;
   const bounds = petWindow.getBounds();
-  if (!currentBubble) {
-    store.set("petPosition", { x: bounds.x, y: bounds.y });
-    return;
-  }
-
   const scale = getSettings().petScale;
-  const petSize = visiblePetSize(scale);
-  const compactSize = {
-    width: Math.max(44, petSize.width + PET_WINDOW_PADDING),
-    height: Math.max(48, petSize.height + PET_WINDOW_PADDING)
-  };
+  const compactSize = compactPetWindowSize(scale);
   const petAnchorX = bounds.x + bounds.width / 2 + petLayout.petOffsetX;
   const compactBounds = clampBoundsToWorkArea({
     ...compactSize,
@@ -1463,7 +1457,7 @@ set rows to {}
 tell application "System Events"
   repeat with appProcess in application processes
     set appName to name of appProcess
-    if appName is not "PawPause" and appName is not "PawPal" and appName is not "Electron" then
+    if appName is not "PawPause" and appName is not "PawPal" then
       try
         repeat with appWindow in windows of appProcess
           set windowTitle to ""
@@ -1519,6 +1513,33 @@ function rememberAgentWindowTarget(
 ): void {
   const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
   if (activeSource !== event.source) return;
+  const target: AgentWindowTarget = {
+    source: event.source,
+    sessionKey: event.sessionKey,
+    appName: active.appName,
+    windowTitle: active.windowTitle,
+    observedAt: Date.now()
+  };
+  agentWindowTargets.set(event.sessionKey, target);
+  recentAgentWindowTargets.unshift(target);
+  if (recentAgentWindowTargets.length > 30) recentAgentWindowTargets.length = 30;
+}
+
+function looksLikeAgentHostWindow(appName: string, title: string): boolean {
+  const target = `${appName} ${title}`;
+  return /(terminal|iterm|warp|ghostty|wezterm|alacritty|kitty|tabby|rio|hyper|cursor|visual studio code|code|trae|zed|deepseek|codex|claude|opencode|open\s*code)/i.test(
+    target
+  );
+}
+
+function rememberAgentWindowTargetForEvent(
+  event: Pick<AgentMonitorEvent, "sessionKey" | "source">,
+  active: ActiveWindowInfo | null
+): void {
+  if (!active) return;
+  const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
+  if (activeSource && activeSource !== event.source) return;
+  if (!activeSource && !looksLikeAgentHostWindow(active.appName, active.windowTitle)) return;
   const target: AgentWindowTarget = {
     source: event.source,
     sessionKey: event.sessionKey,
@@ -1602,7 +1623,8 @@ async function resolveAgentWindowTarget(sessionKey: string): Promise<AgentWindow
   const windows = await readAgentWindows();
   const knownTarget = agentWindowTargets.get(sessionKey);
   const recentTarget = recentAgentWindowTargets.find((target) => target.sessionKey === sessionKey);
-  const preferredTarget = knownTarget ?? recentTarget;
+  const recentSourceTarget = recentAgentWindowTargets.find((target) => target.source === source);
+  const preferredTarget = knownTarget ?? recentTarget ?? recentSourceTarget;
   const scored = windows
     .map((windowTarget) => ({
       windowTarget,
@@ -1610,7 +1632,7 @@ async function resolveAgentWindowTarget(sessionKey: string): Promise<AgentWindow
     }))
     .filter((candidate) => candidate.score > 0)
     .sort((left, right) => right.score - left.score);
-  return scored[0]?.windowTarget ?? null;
+  return scored[0]?.windowTarget ?? preferredTarget ?? null;
 }
 
 function focusAgentWindowScript(target: Pick<AgentWindowTarget, "appName" | "windowTitle">): string {
@@ -1639,6 +1661,24 @@ tell application "System Events"
           return "focused"
         end if
       end repeat
+      try
+        tell application targetAppName to activate
+      end try
+      try
+        if (count of windows of appProcess) > 0 then
+          set appWindow to item 1 of windows of appProcess
+          try
+            perform action "AXRaise" of appWindow
+          end try
+          try
+            set value of attribute "AXMain" of appWindow to true
+          end try
+          try
+            set focused of appWindow to true
+          end try
+          return "focused-app"
+        end if
+      end try
     end if
   end repeat
 end tell
@@ -1651,8 +1691,19 @@ async function focusAgentWindowForAction(actionId: string): Promise<void> {
   if (!sessionKey || process.platform !== "darwin") return;
   const target = await resolveAgentWindowTarget(sessionKey);
   if (!target) return;
-  await execFileText("/usr/bin/osascript", ["-e", focusAgentWindowScript(target)]);
-  hideBubble();
+  const result = await execFileText("/usr/bin/osascript", ["-e", focusAgentWindowScript(target)]);
+  if (/focused/i.test(result)) hideBubble();
+}
+
+function openExternalUrl(rawUrl: string): void {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "https:") return;
+    if (url.hostname !== "petdex.crafter.run") return;
+    void shell.openExternal(url.toString());
+  } catch {
+    // Ignore malformed renderer input.
+  }
 }
 
 function titleLooksBusy(title: string): boolean {
@@ -2723,6 +2774,7 @@ async function checkAgentActivityNow(): Promise<void> {
     ]
       .filter((event) => event.timestampMs >= newestAllowedAt && event.timestampMs <= now + 30_000)
       .sort((left, right) => left.timestampMs - right.timestampMs);
+    const active = await readActiveWindow().catch(() => null);
 
     if (!agentMonitorPrimed) {
       const latestWorking = events.filter((event) => event.kind === "working").at(-1);
@@ -2732,6 +2784,7 @@ async function checkAgentActivityNow(): Promise<void> {
       }
       agentMonitorPrimed = true;
       if (latestWorking && now - latestWorking.timestampMs < 30_000) {
+        rememberAgentWindowTargetForEvent(latestWorking, active);
         markAgentSessionWorking(latestWorking);
         if (latestWorking.showProgress !== false) showAgentWorkingPose(latestWorking);
       }
@@ -2743,6 +2796,7 @@ async function checkAgentActivityNow(): Promise<void> {
       if (agentSeenEventIds.has(event.id)) continue;
       if (event.kind === "working") {
         rememberAgentEvent(event.id);
+        rememberAgentWindowTargetForEvent(event, active);
         markAgentSessionWorking(event);
         if (event.showProgress !== false) showAgentWorkingPose(event);
         continue;
@@ -2751,10 +2805,10 @@ async function checkAgentActivityNow(): Promise<void> {
         rememberAgentEvent(event.id);
         continue;
       }
+      rememberAgentWindowTargetForEvent(event, active);
       if (notifyAgentEvent(event)) rememberAgentEvent(event.id);
     }
 
-    const active = await readActiveWindow().catch(() => null);
     if (!active) return;
     const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
     if (!activeSource) return;
@@ -3210,6 +3264,7 @@ function registerIpc(): void {
   );
   ipcMain.on("pet:drag-stop", stopPetDrag);
   ipcMain.on("bubble:action", (_event, actionId: string) => handleBubbleAction(actionId));
+  ipcMain.on("app:open-external", (_event, url: string) => openExternalUrl(url));
   ipcMain.on("settings:update", (_event, partial: Partial<Settings>) => {
     setSettings({ ...getSettings(), ...partial });
   });

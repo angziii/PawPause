@@ -20,6 +20,7 @@ type StatsMetric = "breaksTaken" | "watersLogged" | "focusMinutes" | "focusWarni
 type StatsTrendPoint = TodayStats & {
   label: string;
 };
+const PETDEX_URL = "https://petdex.crafter.run/";
 
 function Row({
   label,
@@ -591,7 +592,7 @@ export function SettingsView(): JSX.Element {
 
       {page === "pets" ? (
         <section className="prefs__group">
-          <div className="pref-block">
+          <div className="pref-block pref-block--flush">
             <div className="pet-picker">
               {petOptions.map((option) => (
                 <PetCard
@@ -613,6 +614,17 @@ export function SettingsView(): JSX.Element {
               </button>
             }
           />
+          <p className="petdex-link">
+            <a
+              href={PETDEX_URL}
+              onClick={(event) => {
+                event.preventDefault();
+                window.pawpause.openExternal(PETDEX_URL);
+              }}
+            >
+              {labels.petdexDownloadCta}
+            </a>
+          </p>
         </section>
       ) : null}
 
