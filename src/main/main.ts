@@ -84,7 +84,7 @@ const AGENT_ACTIVITY_CHECK_INTERVAL_MS = 5000;
 const AGENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
 
-type AgentSource = "Codex" | "Claude Code" | "OpenCode";
+type AgentSource = "Codex" | "Claude Code" | "OpenCode" | "DeepSeek TUI";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
 type AgentProgressKind =
   | "working"
@@ -1430,6 +1430,7 @@ function scheduleDistractionDetection(): void {
 
 function sourceFromAgentWindow(appName: string, title: string): AgentSource | null {
   const target = `${appName} ${title}`;
+  if (/\bdeep\s*seek\b|\bdeepseek(?:[-\s]*tui)?\b/i.test(target)) return "DeepSeek TUI";
   if (/\bclaude(?:\s+code)?\b/i.test(target)) return "Claude Code";
   if (/\bcodex\b/i.test(target)) return "Codex";
   if (/\bopen\s*code\b|\bopencode\b/i.test(target)) return "OpenCode";
@@ -1437,6 +1438,7 @@ function sourceFromAgentWindow(appName: string, title: string): AgentSource | nu
 }
 
 function sourceFromSessionKey(sessionKey: string): AgentSource | null {
+  if (sessionKey.startsWith("DeepSeek TUI:")) return "DeepSeek TUI";
   if (sessionKey.startsWith("Claude Code:")) return "Claude Code";
   if (sessionKey.startsWith("Codex:")) return "Codex";
   if (sessionKey.startsWith("OpenCode:")) return "OpenCode";
@@ -1669,9 +1671,9 @@ function titleLooksFailed(title: string): boolean {
   return /failed|failure|error|blocked|crashed|报错|失败|错误|无法继续/.test(title.toLowerCase());
 }
 
-function execFileText(file: string, args: string[]): Promise<string> {
+function execFileText(file: string, args: string[], timeout = 1500): Promise<string> {
   return new Promise((resolveText) => {
-    execFile(file, args, { timeout: 1500 }, (_error, stdout) => {
+    execFile(file, args, { timeout }, (_error, stdout) => {
       resolveText(stdout);
     });
   });
@@ -1691,6 +1693,22 @@ function eventTimeMs(value: unknown): number | null {
   if (!raw) return null;
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function numberValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseJsonRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "string") return null;
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
 }
 
 function hashText(input: string): string {
@@ -1788,6 +1806,10 @@ function parseJsonLinesTail(path: string): Array<Record<string, unknown>> {
   } catch {
     return [];
   }
+}
+
+function unknownArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
 }
 
 function extractTextFromContent(content: unknown, typeName: string): string {
@@ -2136,6 +2158,309 @@ function collectOpenCodeHookEvents(): AgentMonitorEvent[] {
   return events;
 }
 
+function openCodeDatabasePath(): string | null {
+  const home = app.getPath("home");
+  const xdgDataHome = process.env.XDG_DATA_HOME || join(home, ".local", "share");
+  const candidates = uniqueStrings([
+    join(xdgDataHome, "opencode", "opencode.db"),
+    join(home, ".local", "share", "opencode", "opencode.db"),
+    join(home, "Library", "Application Support", "opencode", "opencode.db"),
+    join(home, "AppData", "Roaming", "opencode", "opencode.db")
+  ]);
+  return candidates.find((file) => existsSync(file)) ?? null;
+}
+
+async function execSqliteJson(databasePath: string, sql: string): Promise<Array<Record<string, unknown>>> {
+  const candidates = uniqueStrings([
+    process.env.SQLITE3_PATH,
+    process.platform === "darwin" ? "/usr/bin/sqlite3" : undefined,
+    "sqlite3"
+  ]);
+
+  for (const executable of candidates) {
+    if (isAbsolute(executable) && !existsSync(executable)) continue;
+    const output = await execFileText(executable, ["-json", databasePath, sql], 1800);
+    const trimmed = output.trim();
+    if (!trimmed.startsWith("[")) continue;
+    try {
+      const rows = JSON.parse(trimmed);
+      if (Array.isArray(rows)) {
+        return rows.filter((row): row is Record<string, unknown> => Boolean(asRecord(row)));
+      }
+    } catch {
+      // Try the next sqlite executable candidate.
+    }
+  }
+
+  return [];
+}
+
+function normalizeOpenCodeDatabasePart(row: Record<string, unknown>): AgentMonitorEvent | null {
+  const timestampMs = numberValue(row.time_updated) ?? numberValue(row.time_created);
+  if (timestampMs === null) return null;
+
+  const part = parseJsonRecord(row.part_data);
+  const message = parseJsonRecord(row.message_data);
+  if (!part || !message) return null;
+
+  const partId = stringValue(row.id);
+  const messageId = stringValue(row.message_id);
+  const sessionID = stringValue(row.session_id) || "unknown";
+  const role = stringValue(message.role);
+  const type = stringValue(part.type);
+  if (!partId || !type) return null;
+
+  const base = {
+    id: `OpenCode:db:${sessionID}:${messageId}:${partId}:${timestampMs}`,
+    source: "OpenCode" as const,
+    sessionKey: `OpenCode:${sessionID}`,
+    timestampMs
+  };
+
+  if (role === "user" && type === "text") {
+    return {
+      ...base,
+      kind: "working",
+      message: "OpenCode is thinking",
+      progressKind: "thinking",
+      state: "thinking"
+    };
+  }
+
+  if (role !== "assistant") return null;
+
+  if (type === "step-start" || type === "reasoning") {
+    return {
+      ...base,
+      kind: "working",
+      message: "OpenCode is thinking",
+      progressKind: "thinking",
+      state: "thinking",
+      showProgress: false
+    };
+  }
+
+  if (type === "text") {
+    return {
+      ...base,
+      kind: "working",
+      message: compactAgentText(stringValue(part.text) || "OpenCode is responding"),
+      progressKind: "thinking",
+      state: "thinking",
+      showProgress: false
+    };
+  }
+
+  if (/tool|command|bash|shell/i.test(type)) {
+    const tool = stringValue(part.tool) || stringValue(part.name) || stringValue(part.command) || type;
+    return {
+      ...base,
+      kind: "working",
+      message: tool,
+      progressKind: classifyAgentProgressKind(tool, "tool"),
+      state: "thinking"
+    };
+  }
+
+  if (type === "step-finish") {
+    const reason = stringValue(part.reason);
+    const failed = /error|fail|cancel/i.test(reason);
+    return {
+      ...base,
+      kind: failed ? "failed" : "complete",
+      message: failed ? "OpenCode ran into a problem" : "OpenCode session is idle",
+      progressKind: failed ? "failed" : "complete",
+      state: failed ? "failed" : "waving"
+    };
+  }
+
+  return null;
+}
+
+async function collectOpenCodeDatabaseEvents(): Promise<AgentMonitorEvent[]> {
+  const databasePath = openCodeDatabasePath();
+  if (!databasePath) return [];
+
+  const newestAllowedAt = Date.now() - AGENT_EVENT_MAX_AGE_MS - 30_000;
+  const rows = await execSqliteJson(
+    databasePath,
+    `select p.id, p.session_id, p.message_id, p.time_created, p.time_updated, p.data as part_data, m.data as message_data
+from part p join message m on m.id = p.message_id
+where p.time_updated >= ${Math.max(0, newestAllowedAt)}
+order by p.time_updated asc
+limit 120`
+  );
+
+  return rows
+    .map(normalizeOpenCodeDatabasePart)
+    .filter((event): event is AgentMonitorEvent => Boolean(event));
+}
+
+function deepSeekSessionRoot(): string {
+  return join(app.getPath("home"), ".deepseek", "sessions");
+}
+
+function deepSeekAuditLogPath(): string {
+  return join(app.getPath("home"), ".deepseek", "audit.log");
+}
+
+function extractDeepSeekContentText(content: unknown, typeName: string): string {
+  return unknownArray(content)
+    .map((part) => {
+      const record = asRecord(part);
+      if (!record || record.type !== typeName) return "";
+      return stringValue(record.text) || stringValue(record.thinking);
+    })
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function lastDeepSeekMessage(messages: unknown): Record<string, unknown> | null {
+  const records = unknownArray(messages)
+    .map(asRecord)
+    .filter((message): message is Record<string, unknown> => Boolean(message));
+  return records.at(-1) ?? null;
+}
+
+function deepSeekToolNames(content: unknown): string[] {
+  return uniqueStrings(
+    unknownArray(content)
+      .map(asRecord)
+      .filter((part): part is Record<string, unknown> => part !== null && part.type === "tool_use")
+      .map((part) => stringValue(part.name))
+  );
+}
+
+function makeDeepSeekEvent(
+  file: string,
+  sessionId: string,
+  timestampMs: number,
+  suffix: string,
+  classified: Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs">
+): AgentMonitorEvent {
+  return {
+    ...classified,
+    id: `DeepSeek TUI:${file}:${sessionId}:${timestampMs}:${suffix}`,
+    source: "DeepSeek TUI",
+    sessionKey: `DeepSeek TUI:${sessionId || file}`,
+    timestampMs
+  };
+}
+
+function collectDeepSeekSessionEvents(): AgentMonitorEvent[] {
+  const files = listRecentFiles(deepSeekSessionRoot(), ".json", 6);
+  const events: AgentMonitorEvent[] = [];
+
+  for (const file of files) {
+    try {
+      const data = asRecord(JSON.parse(readFileSync(file, "utf8")));
+      const metadata = asRecord(data?.metadata);
+      if (!data || !metadata) continue;
+
+      const sessionId = stringValue(metadata.id) || file;
+      const timestampMs = eventTimeMs(metadata.updated_at) ?? statSync(file).mtimeMs;
+      const lastMessage = lastDeepSeekMessage(data.messages);
+      if (!lastMessage) continue;
+
+      const role = stringValue(lastMessage.role);
+      const content = lastMessage.content;
+      const text = extractDeepSeekContentText(content, "text");
+      const thinking = extractDeepSeekContentText(content, "thinking");
+      const toolNames = deepSeekToolNames(content);
+
+      if (role === "user") {
+        const message = compactAgentText(text || "DeepSeek TUI is thinking");
+        events.push(
+          makeDeepSeekEvent(file, sessionId, timestampMs, `user:${hashText(message)}`, {
+            kind: "working",
+            message: "DeepSeek TUI is thinking",
+            progressKind: "thinking",
+            state: "thinking"
+          })
+        );
+        continue;
+      }
+
+      if (role !== "assistant") continue;
+
+      if (thinking || toolNames.length > 0) {
+        const tool = toolNames.at(-1);
+        events.push(
+          makeDeepSeekEvent(file, sessionId, Math.max(0, timestampMs - 1000), `working:${hashText(thinking || tool || "")}`, {
+            kind: "working",
+            message: tool || "DeepSeek TUI is thinking",
+            progressKind: tool ? classifyAgentProgressKind(tool, "tool") : "thinking",
+            state: "thinking",
+            showProgress: false
+          })
+        );
+      }
+
+      const classified = classifyAgentText(text);
+      events.push(
+        makeDeepSeekEvent(file, sessionId, timestampMs, `assistant:${hashText(text)}`, {
+          kind: classified?.kind ?? "complete",
+          message: classified?.message ?? compactAgentText(text || "DeepSeek TUI responded"),
+          progressKind: classified?.progressKind ?? "complete",
+          state: classified?.state ?? "waving"
+        })
+      );
+    } catch {
+      // Ignore partially-written session files.
+    }
+  }
+
+  return events;
+}
+
+function collectDeepSeekAuditEvents(): AgentMonitorEvent[] {
+  const file = deepSeekAuditLogPath();
+  if (!existsSync(file)) return [];
+
+  const events: AgentMonitorEvent[] = [];
+  for (const line of parseJsonLinesTail(file)) {
+    const timestampMs = eventTimeMs(line.ts);
+    const details = asRecord(line.details);
+    if (timestampMs === null || !details) continue;
+
+    const eventName = stringValue(line.event);
+    const sessionId = stringValue(details.session_id) || file;
+    const toolName = stringValue(details.tool_name);
+    const mode = stringValue(details.mode);
+    const base = {
+      source: "DeepSeek TUI" as const,
+      sessionKey: `DeepSeek TUI:${sessionId}`,
+      timestampMs
+    };
+
+    if (eventName === "tool.approval.prompted") {
+      events.push({
+        ...base,
+        id: `DeepSeek TUI:audit:${sessionId}:${timestampMs}:permission:${toolName}`,
+        kind: "needs-review",
+        message: toolName || "DeepSeek TUI needs permission",
+        progressKind: "permission",
+        state: "reviewing"
+      });
+      continue;
+    }
+
+    if (/tool\.approval\.auto_approve|tool\.approval\.approved/i.test(eventName)) {
+      events.push({
+        ...base,
+        id: `DeepSeek TUI:audit:${sessionId}:${timestampMs}:tool:${toolName}:${mode}`,
+        kind: "working",
+        message: toolName || "DeepSeek TUI is using a tool",
+        progressKind: classifyAgentProgressKind(toolName, "tool"),
+        state: "thinking"
+      });
+    }
+  }
+
+  return events;
+}
+
 function collectCodexSessionEvents(): AgentMonitorEvent[] {
   const sessionsRoot = join(app.getPath("home"), ".codex", "sessions");
   const files = listRecentFiles(sessionsRoot, ".jsonl", 4);
@@ -2391,7 +2716,10 @@ async function checkAgentActivityNow(): Promise<void> {
       ...collectCodexSessionEvents(),
       ...collectClaudeSessionEvents(),
       ...collectClaudeStatusEvents(),
-      ...collectOpenCodeHookEvents()
+      ...collectOpenCodeHookEvents(),
+      ...(await collectOpenCodeDatabaseEvents()),
+      ...collectDeepSeekSessionEvents(),
+      ...collectDeepSeekAuditEvents()
     ]
       .filter((event) => event.timestampMs >= newestAllowedAt && event.timestampMs <= now + 30_000)
       .sort((left, right) => left.timestampMs - right.timestampMs);
