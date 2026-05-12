@@ -77,6 +77,7 @@ const PET_WINDOW_PADDING = 52;
 const BUBBLE_WINDOW_WIDTH = 300;
 const BUBBLE_RENDER_WIDTH = 276;
 const BUBBLE_WINDOW_EXTRA_HEIGHT = 190;
+const BUBBLE_RESIZE_SETTLE_MS = 34;
 const AMBIENT_ROAM_TICK_MS = 16;
 const AMBIENT_POSE_MIN_DELAY_MS = 12_000;
 const AMBIENT_POSE_MAX_DELAY_MS = 55_000;
@@ -151,6 +152,8 @@ let hydrationDueAt: number | null = null;
 let focusEndsAt: number | null = null;
 let screenBlockEndsAt: number | null = null;
 let bubbleTimer: NodeJS.Timeout | null = null;
+let bubbleResizeSettleTimer: NodeJS.Timeout | null = null;
+let bubbleRenderToken = 0;
 let dragTimer: NodeJS.Timeout | null = null;
 let dragSafetyTimer: NodeJS.Timeout | null = null;
 let ambientRoamTimer: NodeJS.Timeout | null = null;
@@ -236,7 +239,11 @@ function compactPetWindowSize(scale = getSettings().petScale): Pick<Electron.Rec
   };
 }
 
-function petWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
+function petWindowSize(
+  scale = getSettings().petScale,
+  includeBubble = Boolean(currentBubble)
+): Pick<Electron.Rectangle, "width" | "height"> {
+  if (!includeBubble) return compactPetWindowSize(scale);
   const petSize = visiblePetSize(scale);
   return {
     width: Math.max(BUBBLE_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING * 2),
@@ -555,14 +562,26 @@ function updatePetWindowMouseEvents(lyricsModeEnabled = getSettings().lyricsMode
 }
 
 function showBubble(bubble: SpeechBubble): void {
-  if (bubbleTimer) clearTimeout(bubbleTimer);
-  currentBubble = bubble;
-  petLayout = layoutForPetAnchor(petWindow?.getBounds() ?? initialPetBounds());
-  sendToPet("pet:show-bubble", bubble);
-  sendPetLayout();
-  if (bubble.autoDismissMs) {
-    bubbleTimer = setTimeout(() => hideBubble(), bubble.autoDismissMs);
+  if (bubbleTimer) {
+    clearTimeout(bubbleTimer);
+    bubbleTimer = null;
   }
+  if (bubbleResizeSettleTimer) {
+    clearTimeout(bubbleResizeSettleTimer);
+    bubbleResizeSettleTimer = null;
+  }
+  const renderToken = ++bubbleRenderToken;
+  currentBubble = bubble;
+  resizePetWindowForScale(getSettings().petScale, true);
+  // Let the transparent window finish resizing before changing rendered content.
+  bubbleResizeSettleTimer = setTimeout(() => {
+    bubbleResizeSettleTimer = null;
+    if (renderToken !== bubbleRenderToken || currentBubble?.id !== bubble.id) return;
+    sendToPet("pet:show-bubble", bubble);
+    if (bubble.autoDismissMs) {
+      bubbleTimer = setTimeout(() => hideBubble(), bubble.autoDismissMs);
+    }
+  }, BUBBLE_RESIZE_SETTLE_MS);
 }
 
 function hideBubble(): void {
@@ -570,10 +589,18 @@ function hideBubble(): void {
     clearTimeout(bubbleTimer);
     bubbleTimer = null;
   }
-  currentBubble = null;
+  if (bubbleResizeSettleTimer) {
+    clearTimeout(bubbleResizeSettleTimer);
+    bubbleResizeSettleTimer = null;
+  }
+  const renderToken = ++bubbleRenderToken;
   sendToPet("pet:hide-bubble");
-  petLayout = layoutForPetAnchor(petWindow?.getBounds() ?? initialPetBounds());
-  sendPetLayout();
+  currentBubble = null;
+  bubbleResizeSettleTimer = setTimeout(() => {
+    bubbleResizeSettleTimer = null;
+    if (renderToken !== bubbleRenderToken || currentBubble) return;
+    resizePetWindowForScale(getSettings().petScale, false);
+  }, BUBBLE_RESIZE_SETTLE_MS);
 }
 
 function rendererUrl(route: "pet" | "settings"): string {
@@ -643,7 +670,7 @@ function persistPetPosition(): void {
   store.set("petPosition", { x: compactBounds.x, y: compactBounds.y });
 }
 
-function resizePetWindowForScale(scale: number): void {
+function resizePetWindowForScale(scale: number, includeBubble = Boolean(currentBubble)): void {
   if (!petWindow || petWindow.isDestroyed()) return;
   if (blockingMode === "breakRun" || blockingMode === "focusWarning") {
     petLayout = layoutForPetAnchor(petWindow.getBounds());
@@ -651,7 +678,7 @@ function resizePetWindowForScale(scale: number): void {
     return;
   }
   const current = petWindow.getBounds();
-  const nextSize = petWindowSize(scale);
+  const nextSize = petWindowSize(scale, includeBubble);
   const petAnchorX = current.x + current.width / 2 + petLayout.petOffsetX;
   const nextBounds = clampBoundsToWorkArea({
     ...nextSize,
@@ -665,7 +692,7 @@ function resizePetWindowForScale(scale: number): void {
     current.x !== nextBounds.x ||
     current.y !== nextBounds.y
   ) {
-    petWindow.setBounds(nextBounds);
+    petWindow.setBounds(nextBounds, false);
   }
   sendPetLayout();
   persistPetPosition();
@@ -3348,6 +3375,7 @@ app.on("before-quit", () => {
     agentActivityTimer,
     petLibraryTimer,
     bubbleTimer,
+    bubbleResizeSettleTimer,
     dragTimer,
     dragSafetyTimer,
     ambientRoamTimer,
