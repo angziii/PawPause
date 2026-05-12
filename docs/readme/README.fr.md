@@ -26,7 +26,7 @@ Il est local-first : les réglages, statistiques, compagnons importés et histor
 - Rappels de pause et mode optionnel de blocage d'écran
 - Rappels d'hydratation avec statistiques historiques
 - Détection des distractions sur macOS par app ou mot-clé
-- Alertes locales Codex / Claude Code quand une session se termine ou demande une revue
+- Alertes locales Codex / Claude Code / OpenCode quand une session se termine ou demande une revue
 - Import de paquets `pet.json + spritesheet.webp/png`
 - Lecture automatique des personnages PetDex dans `~/.codex/pets`
 - Interface en 9 langues et mode sombre système

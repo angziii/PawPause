@@ -7,6 +7,8 @@ const repoUrl = "https://github.com/angziii/PawPause";
 const latestReleaseUrl = `${repoUrl}/releases/latest`;
 const petdexUrl = "https://petdex.crafter.run/zh";
 const latestVersion = "v1.0.0";
+const starNudgeDurationMs = 8000;
+const starNudgeDurationSeconds = starNudgeDurationMs / 1000;
 
 const links = [
   { id: "download", href: latestReleaseUrl, primary: true },
@@ -31,6 +33,9 @@ type LandingCopy = {
   downloadSubtitle: string;
   downloadAll: string;
   closeDownload: string;
+  starNudge: string;
+  starNudgeCountdown: string;
+  starNudgeAria: string;
   prompts: string[];
 };
 
@@ -74,7 +79,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "语言",
     nav: { download: "下载", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "让电子宠物住进桌面：提醒休息、喝水、保持专注，也能在 Codex / Claude Code / DeepSeek TUI 工作时给你动态提示。",
+    hero: "让电子宠物住进桌面：提醒休息、喝水、保持专注，也能在 Codex / Claude Code / OpenCode 工作时给你动态提示。",
     localFirst: "本地优先，不需要账号。",
     petdexLine1: "兼容 Codex 宠物格式，",
     petdexLine2: "可前往 PetDex 社区下载。",
@@ -84,10 +89,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "根据你的系统下载最新版本。",
     downloadAll: "查看全部 Release",
     closeDownload: "关闭下载弹窗",
+    starNudge: "在 GitHub 点个星星支持我们吧。",
+    starNudgeCountdown: "{seconds} 秒后收回",
+    starNudgeAria: "打开 GitHub 给 PawPause 点星",
     prompts: [
       "Codex 正在思考",
       "Claude Code 正在调用工具",
-      "Agent 正在执行脚本",
+      "OpenCode 正在执行脚本",
       "需要你做个选择",
       "需要权限才能继续",
       "有结果需要你确认",
@@ -101,7 +109,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "Language",
     nav: { download: "Download", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "A pixel companion for breaks, water, focus, and live Codex, Claude Code, and DeepSeek TUI activity nudges.",
+    hero: "A pixel companion for breaks, water, focus, and live Codex, Claude Code, and OpenCode activity nudges.",
     localFirst: "Local first. No account needed.",
     petdexLine1: "Compatible with the Codex pet format.",
     petdexLine2: "Download more from PetDex.",
@@ -111,10 +119,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Download the latest build for your system.",
     downloadAll: "View all releases",
     closeDownload: "Close download dialog",
+    starNudge: "Star us on GitHub to support PawPause.",
+    starNudgeCountdown: "Retracts in {seconds}s",
+    starNudgeAria: "Open GitHub to star PawPause",
     prompts: [
       "Codex is thinking",
       "Claude Code is using a tool",
-      "Agent is running a script",
+      "OpenCode is running a script",
       "Needs you to choose",
       "Permission needed",
       "Results need review",
@@ -128,7 +139,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "言語",
     nav: { download: "入手", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "休憩・水分補給・集中を支え、Codex / Claude Code / DeepSeek TUI の作業状況も知らせるピクセル相棒です。",
+    hero: "休憩・水分補給・集中を支え、Codex / Claude Code / OpenCode の作業状況も知らせるピクセル相棒です。",
     localFirst: "ローカル優先。アカウント不要。",
     petdexLine1: "Codex ペット形式に対応。",
     petdexLine2: "追加キャラクターは PetDex コミュニティから入手できます。",
@@ -138,10 +149,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "お使いの環境向けの最新版をダウンロード。",
     downloadAll: "すべてのリリースを見る",
     closeDownload: "ダウンロードダイアログを閉じる",
+    starNudge: "GitHub で星をつけて応援してください。",
+    starNudgeCountdown: "{seconds}秒で戻ります",
+    starNudgeAria: "GitHub を開いて PawPause に星をつける",
     prompts: [
       "Codex が考えています",
       "Claude Code がツールを使用中",
-      "Agent がスクリプトを実行中",
+      "OpenCode がスクリプトを実行中",
       "選択が必要です",
       "権限が必要です",
       "結果の確認が必要です",
@@ -155,7 +169,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "언어",
     nav: { download: "다운로드", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "휴식, 물 마시기, 집중을 돕고 Codex / Claude Code / DeepSeek TUI 작업 상태도 알려주는 픽셀 동반자입니다.",
+    hero: "휴식, 물 마시기, 집중을 돕고 Codex / Claude Code / OpenCode 작업 상태도 알려주는 픽셀 동반자입니다.",
     localFirst: "로컬 우선. 계정이 필요 없어요.",
     petdexLine1: "Codex 펫 형식과 호환됩니다.",
     petdexLine2: "PetDex 커뮤니티에서 더 받을 수 있어요.",
@@ -165,10 +179,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "시스템에 맞는 최신 버전을 다운로드하세요.",
     downloadAll: "모든 릴리스 보기",
     closeDownload: "다운로드 창 닫기",
+    starNudge: "GitHub에서 별을 눌러 응원해 주세요.",
+    starNudgeCountdown: "{seconds}초 후 접힘",
+    starNudgeAria: "GitHub에서 PawPause에 별 주기",
     prompts: [
       "Codex 생각 중",
       "Claude Code 도구 사용 중",
-      "Agent 스크립트 실행 중",
+      "OpenCode 스크립트 실행 중",
       "선택이 필요해요",
       "권한이 필요해요",
       "결과 확인이 필요해요",
@@ -182,7 +199,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "Idioma",
     nav: { download: "Descargar", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Una mascota pixel para pausas, agua, concentración y avisos en vivo de Codex / Claude Code / DeepSeek TUI.",
+    hero: "Una mascota pixel para pausas, agua, concentración y avisos en vivo de Codex / Claude Code / OpenCode.",
     localFirst: "Primero local. Sin cuenta.",
     petdexLine1: "Compatible con el formato de mascotas de Codex.",
     petdexLine2: "Descarga más en PetDex.",
@@ -192,10 +209,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Descarga la version mas reciente para tu sistema.",
     downloadAll: "Ver todas las versiones",
     closeDownload: "Cerrar dialogo de descarga",
+    starNudge: "Danos una estrella en GitHub para apoyarnos.",
+    starNudgeCountdown: "Se cierra en {seconds}s",
+    starNudgeAria: "Abrir GitHub para dar una estrella a PawPause",
     prompts: [
       "Codex está pensando",
       "Claude Code usa una herramienta",
-      "Agent ejecuta un script",
+      "OpenCode ejecuta un script",
       "Necesita que elijas",
       "Necesita permiso",
       "Revisa los resultados",
@@ -209,7 +229,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "Langue",
     nav: { download: "Télécharger", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Un compagnon pixel pour les pauses, l'eau, la concentration et les alertes Codex / Claude Code / DeepSeek TUI.",
+    hero: "Un compagnon pixel pour les pauses, l'eau, la concentration et les alertes Codex / Claude Code / OpenCode.",
     localFirst: "Local d'abord. Aucun compte requis.",
     petdexLine1: "Compatible avec le format de compagnon Codex.",
     petdexLine2: "Télécharge d'autres personnages sur PetDex.",
@@ -219,10 +239,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Telecharge la derniere version pour ton systeme.",
     downloadAll: "Voir toutes les versions",
     closeDownload: "Fermer la fenetre de telechargement",
+    starNudge: "Ajoute une étoile sur GitHub pour nous soutenir.",
+    starNudgeCountdown: "Se replie dans {seconds}s",
+    starNudgeAria: "Ouvrir GitHub pour ajouter une étoile à PawPause",
     prompts: [
       "Codex réfléchit",
       "Claude Code utilise un outil",
-      "Agent exécute un script",
+      "OpenCode exécute un script",
       "Un choix est nécessaire",
       "Autorisation requise",
       "Résultats à vérifier",
@@ -236,7 +259,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "Sprache",
     nav: { download: "Download", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Ein Pixel-Begleiter für Pausen, Wasser, Fokus und Live-Hinweise von Codex / Claude Code / DeepSeek TUI.",
+    hero: "Ein Pixel-Begleiter für Pausen, Wasser, Fokus und Live-Hinweise von Codex / Claude Code / OpenCode.",
     localFirst: "Lokal zuerst. Kein Konto nötig.",
     petdexLine1: "Kompatibel mit dem Codex-Pet-Format.",
     petdexLine2: "Weitere Figuren gibt es bei PetDex.",
@@ -246,10 +269,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Lade die neueste Version fur dein System herunter.",
     downloadAll: "Alle Versionen ansehen",
     closeDownload: "Download-Dialog schliessen",
+    starNudge: "Gib uns auf GitHub einen Stern zur Unterstützung.",
+    starNudgeCountdown: "Zieht sich in {seconds}s zurück",
+    starNudgeAria: "GitHub öffnen, um PawPause einen Stern zu geben",
     prompts: [
       "Codex denkt nach",
       "Claude Code nutzt ein Tool",
-      "Agent führt ein Skript aus",
+      "OpenCode führt ein Skript aus",
       "Eine Auswahl ist nötig",
       "Berechtigung nötig",
       "Ergebnisse prüfen",
@@ -263,7 +289,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "Язык",
     nav: { download: "Скачать", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "Пиксельный помощник для пауз, воды, фокуса и статусов Codex / Claude Code / DeepSeek TUI.",
+    hero: "Пиксельный помощник для пауз, воды, фокуса и статусов Codex / Claude Code / OpenCode.",
     localFirst: "Локально в первую очередь. Аккаунт не нужен.",
     petdexLine1: "Совместим с форматом питомцев Codex.",
     petdexLine2: "Больше персонажей есть в PetDex.",
@@ -273,10 +299,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "Скачайте последнюю версию для вашей системы.",
     downloadAll: "Все релизы",
     closeDownload: "Закрыть окно загрузки",
+    starNudge: "Поставьте звезду на GitHub, чтобы поддержать нас.",
+    starNudgeCountdown: "Свернется через {seconds} с",
+    starNudgeAria: "Открыть GitHub и поставить звезду PawPause",
     prompts: [
       "Codex думает",
       "Claude Code использует инструмент",
-      "Agent запускает скрипт",
+      "OpenCode запускает скрипт",
       "Нужно выбрать",
       "Нужно разрешение",
       "Проверь результаты",
@@ -291,7 +320,7 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "اللغة",
     nav: { download: "تنزيل", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "رفيق بكسل للتوقفات وشرب الماء والتركيز وتنبيهات Codex / Claude Code / DeepSeek TUI الحية.",
+    hero: "رفيق بكسل للتوقفات وشرب الماء والتركيز وتنبيهات Codex / Claude Code / OpenCode الحية.",
     localFirst: "محلي أولا. لا تحتاج حسابا.",
     petdexLine1: "متوافق مع تنسيق حيوانات Codex.",
     petdexLine2: "حمّل المزيد من مجتمع PetDex.",
@@ -301,10 +330,13 @@ const copies: Record<Language, LandingCopy> = {
     downloadSubtitle: "حمّل أحدث نسخة لنظامك.",
     downloadAll: "عرض كل الإصدارات",
     closeDownload: "إغلاق نافذة التنزيل",
+    starNudge: "ادعمنا بنجمة على GitHub.",
+    starNudgeCountdown: "ينسحب خلال {seconds} ث",
+    starNudgeAria: "افتح GitHub لمنح PawPause نجمة",
     prompts: [
       "Codex يفكر",
       "Claude Code يستخدم أداة",
-      "Agent يشغل نصا",
+      "OpenCode يشغل نصا",
       "يحتاج اختيارك",
       "يحتاج إذنا",
       "راجع النتائج",
@@ -358,9 +390,12 @@ export default function PetChaseLanding() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [isStarNudgeVisible, setIsStarNudgeVisible] = useState(false);
+  const [starNudgeSeconds, setStarNudgeSeconds] = useState(starNudgeDurationSeconds);
   const [starCountLabel, setStarCountLabel] = useState("...");
   const [activePet, setActivePet] = useState<{ slug: string; promptIndex: number } | null>(null);
   const copy = copies[language];
+  const starNudgeCountdown = copy.starNudgeCountdown.replace("{seconds}", String(starNudgeSeconds));
   const [petdexPrefix, petdexSuffix] = copy.petdexLine2.split("PetDex");
   const primaryMobileLinks = links.filter((link) => link.id === "github" || link.id === "petdex");
   const secondaryMobileLinks = links.filter((link) => link.id !== "github" && link.id !== "petdex");
@@ -374,6 +409,25 @@ export default function PetChaseLanding() {
     return () => {
       if (reactionTimer.current) window.clearTimeout(reactionTimer.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const duration = starNudgeDurationMs;
+    const startedAt = Date.now();
+    setIsStarNudgeVisible(true);
+    setStarNudgeSeconds(starNudgeDurationSeconds);
+
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((duration - (Date.now() - startedAt)) / 1000));
+      setStarNudgeSeconds(remaining);
+
+      if (remaining <= 0) {
+        setIsStarNudgeVisible(false);
+        window.clearInterval(timer);
+      }
+    }, 250);
+
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -506,6 +560,31 @@ export default function PetChaseLanding() {
 
   return (
     <main className="page-shell" dir={copy.dir ?? "ltr"}>
+      <a
+        aria-hidden={!isStarNudgeVisible}
+        aria-label={copy.starNudgeAria}
+        className={isStarNudgeVisible ? "star-nudge is-visible" : "star-nudge"}
+        href={repoUrl}
+        rel="noreferrer"
+        target="_blank"
+        tabIndex={isStarNudgeVisible ? 0 : -1}
+      >
+        <span className="star-nudge__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M12 .5a12 12 0 0 0-3.79 23.39c.6.1.82-.25.82-.57l-.01-2.01c-3.34.72-4.04-1.42-4.04-1.42-.55-1.37-1.33-1.73-1.33-1.73-1.1-.74.08-.73.08-.73 1.21.09 1.85 1.22 1.85 1.22 1.08 1.82 2.83 1.3 3.52.99.11-.77.42-1.3.77-1.59-2.67-.3-5.47-1.31-5.47-5.82 0-1.28.46-2.33 1.22-3.15-.12-.3-.53-1.52.11-3.16 0 0 .99-.31 3.24 1.2a11.3 11.3 0 0 1 5.9 0c2.25-1.51 3.24-1.2 3.24-1.2.64 1.64.23 2.86.11 3.16.76.82 1.22 1.87 1.22 3.15 0 4.52-2.8 5.51-5.48 5.81.43.37.82 1.09.82 2.2l-.01 3.26c0 .32.22.68.83.57A12 12 0 0 0 12 .5Z"
+              fill="currentColor"
+            />
+          </svg>
+        </span>
+        <span className="star-nudge__body">
+          <span className="star-nudge__message">{copy.starNudge}</span>
+          <span className="star-nudge__countdown" aria-live="polite">
+            {starNudgeCountdown}
+          </span>
+        </span>
+        <span className="star-nudge__meter" aria-hidden="true" />
+      </a>
       <section className="hero-stage" aria-label="PawPause interactive pet playground">
         <nav className="topbar" aria-label="PawPause links" ref={topbarRef}>
           <div className="desktop-nav-links">

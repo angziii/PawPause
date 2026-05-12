@@ -73,6 +73,7 @@ export type SpeechBubble = {
   id: string;
   message: string;
   actions?: BubbleAction[];
+  clickActionId?: string;
   autoDismissMs?: number;
 };
 
@@ -94,6 +95,7 @@ export type Settings = {
   petRoamFrequencySeconds: number;
   petRoamDurationSeconds: number;
   petIdleMotionSeconds: number;
+  lyricsModeEnabled: boolean;
   selectedPetId: string;
   installedPets: InstalledPet[];
   onboardingDismissed: boolean;

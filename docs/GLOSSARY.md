@@ -8,7 +8,7 @@
 | Focus mode | 专注模式 | 集中モード | 집중 모드 | Modo de enfoque | A timed session that helps protect attention. |
 | Screen block | 屏幕拦截 | 画面ブロック | 화면 차단 | Bloqueo de pantalla | A stronger break nudge that blocks part of the screen. |
 | Distraction detection | 分心检测 | 気が散る対象の検出 | 산만함 감지 | Detección de distracciones | Local active-window matching for blocked apps or keywords. |
-| Agent activity alerts | Agent 动态提醒 | Agent アクティビティ通知 | Agent 활동 알림 | Alertas de actividad de agentes | Local Codex / Claude Code progress and completion nudges. |
+| Agent activity alerts | Agent 动态提醒 | Agent アクティビティ通知 | Agent 활동 알림 | Alertas de actividad de agentes | Local Codex / Claude Code / OpenCode progress and completion nudges. |
 | Companion import | 宠物导入 | 相棒のインポート | 동반자 가져오기 | Importación de mascota | Importing a `pet.json` plus `spritesheet.webp/png` package. |
 | PetDex compatibility | PetDex 兼容 | PetDex 互換 | PetDex 호환 | Compatibilidad con PetDex | PawPause can read companions from `~/.codex/pets`. |
 | Local-first | 本地优先 | ローカルファースト | 로컬 우선 | Local primero | Settings, stats, and imported companions stay on the user's machine. |
