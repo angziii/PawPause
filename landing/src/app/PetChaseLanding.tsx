@@ -360,7 +360,7 @@ function resolveLanguage(value: string | undefined): Language {
   if (normalized.startsWith("de")) return "de";
   if (normalized.startsWith("ru")) return "ru";
   if (normalized.startsWith("ar")) return "ar";
-  return "en";
+  return "zh-CN";
 }
 
 type PetDefinition = {
@@ -386,7 +386,10 @@ export default function PetChaseLanding() {
   const reactionTimer = useRef<number | null>(null);
   const topbarRef = useRef<HTMLElement | null>(null);
   const languageMenuRef = useRef<HTMLDivElement | null>(null);
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>(() => {
+    if (typeof navigator !== "undefined") return resolveLanguage(navigator.language);
+    return "zh-CN";
+  });
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
