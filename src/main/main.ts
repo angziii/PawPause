@@ -1566,6 +1566,7 @@ function rememberAgentWindowTargetForEvent(
   if (!active) return;
   const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
   if (activeSource && activeSource !== event.source) return;
+  if (!activeSource && event.source === "Codex") return;
   if (!activeSource && !looksLikeAgentHostWindow(active.appName, active.windowTitle)) return;
   const target: AgentWindowTarget = {
     source: event.source,
@@ -1577,6 +1578,15 @@ function rememberAgentWindowTargetForEvent(
   agentWindowTargets.set(event.sessionKey, target);
   recentAgentWindowTargets.unshift(target);
   if (recentAgentWindowTargets.length > 30) recentAgentWindowTargets.length = 30;
+}
+
+function shouldTrustAgentSessionEvent(
+  event: Pick<AgentMonitorEvent, "source">,
+  active: ActiveWindowInfo | null
+): boolean {
+  if (event.source !== "Codex") return true;
+  if (!active) return false;
+  return sourceFromAgentWindow(active.appName, active.windowTitle) === "Codex";
 }
 
 function registerAgentBubbleAction(
@@ -2810,7 +2820,11 @@ async function checkAgentActivityNow(): Promise<void> {
         rememberAgentEvent(event.id);
       }
       agentMonitorPrimed = true;
-      if (latestWorking && now - latestWorking.timestampMs < 30_000) {
+      if (
+        latestWorking &&
+        now - latestWorking.timestampMs < 30_000 &&
+        shouldTrustAgentSessionEvent(latestWorking, active)
+      ) {
         rememberAgentWindowTargetForEvent(latestWorking, active);
         markAgentSessionWorking(latestWorking);
         if (latestWorking.showProgress !== false) showAgentWorkingPose(latestWorking);
@@ -2823,6 +2837,7 @@ async function checkAgentActivityNow(): Promise<void> {
       if (agentSeenEventIds.has(event.id)) continue;
       if (event.kind === "working") {
         rememberAgentEvent(event.id);
+        if (!shouldTrustAgentSessionEvent(event, active)) continue;
         rememberAgentWindowTargetForEvent(event, active);
         markAgentSessionWorking(event);
         if (event.showProgress !== false) showAgentWorkingPose(event);
