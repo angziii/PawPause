@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pawpause.vercel.app";
-const title = "PawPause - Pixel desktop companion";
+const title = "PawPause - Pixel desktop companion for macOS and Windows";
 const description =
-  "A pixel desktop companion for breaks, water, focus, and live Codex, Claude Code, OpenCode, and DeepSeek TUI activity nudges.";
+  "PawPause is a pixel desktop companion for macOS and Windows that supports breaks, hydration, focus sessions, and local AI coding-agent activity nudges.";
 const socialImage = "/x-card-preview.png";
 const socialImageAlt = "PawPause landing page preview";
 
@@ -12,6 +12,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title,
   description,
+  keywords: [
+    "PawPause",
+    "pixel desktop companion",
+    "desktop pet app",
+    "break reminder",
+    "hydration reminder",
+    "focus companion",
+    "AI coding agent notifications",
+  ],
   alternates: {
     canonical: "/",
   },
