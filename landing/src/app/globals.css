@@ -1010,6 +1010,30 @@ h1 {
   margin-bottom: 0;
 }
 
+.agent-link-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 26px;
+  border: 2px solid var(--line);
+  background: var(--line);
+}
+
+.agent-link-grid article {
+  min-height: 190px;
+  padding: 22px;
+  background: var(--paper);
+}
+
+.agent-link-grid article:nth-child(even) {
+  background: #fff;
+}
+
+.agent-link-grid p {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
 .site-footer {
   display: flex;
   justify-content: space-between;
@@ -1238,6 +1262,10 @@ h1 {
     grid-template-columns: 1fr;
   }
 
+  .agent-link-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .site-footer {
     flex-direction: column;
   }
@@ -1432,8 +1460,13 @@ h1 {
   }
 
   .fact-grid article,
-  .faq-list article {
+  .faq-list article,
+  .agent-link-grid article {
     padding: 18px;
+  }
+
+  .agent-link-grid {
+    grid-template-columns: 1fr;
   }
 
   .info-page__article {

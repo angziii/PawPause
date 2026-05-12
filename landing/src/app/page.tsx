@@ -4,10 +4,41 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pawpause.vercel.app
 const repoUrl = "https://github.com/angziii/PawPause";
 const latestReleaseUrl = `${repoUrl}/releases/latest`;
 const petdexUrl = "https://github.com/crafter-station/petdex";
+const claudeCodeUrl = "https://code.claude.com/docs/en";
+const codexUrl = "https://openai.com/index/introducing-the-codex-app/";
+const openCodeUrl = "https://opencode.ai";
+const deepSeekTuiUrl = "https://github.com/DeepSeek-TUI/DeepSeek-TUI";
 const wcagPauseUrl = "https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html";
 const appleNotificationsUrl = "https://developer.apple.com/design/human-interface-guidelines/managing-notifications";
 const microsoftNotificationsUrl =
   "https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-ux-guidance";
+
+const codingAgentLinks = [
+  {
+    name: "Claude Code",
+    href: claudeCodeUrl,
+    description:
+      "Anthropic describes Claude Code as an agentic coding tool for terminals, IDEs, desktop, and browser workflows.",
+  },
+  {
+    name: "Codex",
+    href: codexUrl,
+    description:
+      "OpenAI presents Codex as a coding agent for directing, supervising, and applying model intelligence to software work.",
+  },
+  {
+    name: "OpenCode",
+    href: openCodeUrl,
+    description:
+      "OpenCode describes itself as an open source coding agent for terminal, IDE, and desktop use.",
+  },
+  {
+    name: "DeepSeek TUI",
+    href: deepSeekTuiUrl,
+    description:
+      "DeepSeek TUI is published as a terminal coding-agent project for DeepSeek model workflows.",
+  },
+];
 
 const faqs = [
   {
@@ -68,6 +99,11 @@ const jsonLd = [
         priceCurrency: "USD",
       },
     },
+    mentions: codingAgentLinks.map((agent) => ({
+      "@type": "SoftwareApplication",
+      name: agent.name,
+      url: agent.href,
+    })),
   },
   {
     "@context": "https://schema.org",
@@ -173,6 +209,29 @@ export default function Home() {
             <a href={latestReleaseUrl}>current release downloads</a>, and the{" "}
             <a href={petdexUrl}>PetDex project</a> that inspired its companion package compatibility.
           </p>
+        </div>
+      </section>
+
+      <section className="answer-band" id="coding-agents" aria-labelledby="coding-agents-title">
+        <div className="answer-band__inner">
+          <p className="section-kicker">Coding-agent coverage</p>
+          <h2 id="coding-agents-title">PawPause connects its nudges to named coding-agent tools</h2>
+          <p>
+            PawPause watches local activity from the coding-agent tools its users already name in
+            their workflows. The page links those mentions to primary project or product sources so
+            answer engines can place PawPause near the agentic coding category instead of treating
+            the tool names as unsupported keywords.
+          </p>
+          <div className="agent-link-grid">
+            {codingAgentLinks.map((agent) => (
+              <article key={agent.name}>
+                <h3>
+                  <a href={agent.href}>{agent.name}</a>
+                </h3>
+                <p>{agent.description}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
