@@ -32,6 +32,7 @@ const api = {
     ipcRenderer.send("pet:drag-start", offset),
   petDragStop: (): void => ipcRenderer.send("pet:drag-stop"),
   bubbleAction: (actionId: string): void => ipcRenderer.send("bubble:action", actionId),
+  openExternal: (url: string): void => ipcRenderer.send("app:open-external", url),
   updateSettings: (settings: Partial<Settings>): void =>
     ipcRenderer.send("settings:update", settings),
   triggerDemo: (trigger: DemoTrigger): void => ipcRenderer.send("demo:trigger", trigger),

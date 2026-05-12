@@ -1077,11 +1077,33 @@ textarea {
   padding: 10px 0 4px;
 }
 
+.pref-block--flush {
+  border-top: 0;
+  padding-top: 0;
+}
+
 .pref-block__label {
   color: var(--ink);
   display: block;
   font-size: 13.5px;
   margin-bottom: 10px;
+}
+
+.petdex-link {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 12px 0 0;
+}
+
+.petdex-link a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.petdex-link a:hover {
+  text-decoration: underline;
 }
 
 .pet-picker {

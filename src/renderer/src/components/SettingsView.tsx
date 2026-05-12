@@ -20,6 +20,7 @@ type StatsMetric = "breaksTaken" | "watersLogged" | "focusMinutes" | "focusWarni
 type StatsTrendPoint = TodayStats & {
   label: string;
 };
+const PETDEX_URL = "https://petdex.crafter.run/";
 
 function Row({
   label,
@@ -504,12 +505,6 @@ export function SettingsView(): JSX.Element {
     value: pet.slug,
     label: pet.manifest.displayName
   }));
-  const pageTitle =
-    page === "stats"
-      ? labels.statsHeading
-      : page === "pets"
-        ? labels.petAppearance
-        : labels.title;
 
   return (
     <main className="prefs" dir={language === "ar" ? "rtl" : "ltr"}>
@@ -530,14 +525,11 @@ export function SettingsView(): JSX.Element {
           {labels.title}
         </button>
       </header>
-      <h1 className="prefs__page-title">{pageTitle}</h1>
+      {page === "settings" ? <h1 className="prefs__page-title">{labels.title}</h1> : null}
 
       {page === "stats" ? (
         <section className="prefs__stats-panel" aria-label={labels.statsHeading}>
           <div className="prefs__stats-head">
-            <div>
-              <h2>{labels.statsHeading}</h2>
-            </div>
             <SegmentedControl
               value={statsRange}
               options={[
@@ -600,9 +592,7 @@ export function SettingsView(): JSX.Element {
 
       {page === "pets" ? (
         <section className="prefs__group">
-          <h2 className="prefs__group-title">{labels.petAppearance}</h2>
-          <div className="pref-block">
-            <span className="pref-block__label">{labels.petAppearance}</span>
+          <div className="pref-block pref-block--flush">
             <div className="pet-picker">
               {petOptions.map((option) => (
                 <PetCard
@@ -624,6 +614,17 @@ export function SettingsView(): JSX.Element {
               </button>
             }
           />
+          <p className="petdex-link">
+            <a
+              href={PETDEX_URL}
+              onClick={(event) => {
+                event.preventDefault();
+                window.pawpause.openExternal(PETDEX_URL);
+              }}
+            >
+              {labels.petdexDownloadCta}
+            </a>
+          </p>
         </section>
       ) : null}
 

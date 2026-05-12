@@ -14,6 +14,24 @@ function sessionID(properties) {
   return properties?.sessionID || properties?.sessionId || "unknown";
 }
 
+function compactText(value) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+function textFromParts(parts) {
+  if (!Array.isArray(parts)) return "";
+  return compactText(
+    parts
+      .map((part) => {
+        if (!part || typeof part !== "object") return "";
+        return typeof part.text === "string" ? part.text : "";
+      })
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
 function entry(event, details) {
   return {
     version: 1,
@@ -30,6 +48,22 @@ function eventEntry(event) {
   const properties = event.properties || {};
 
   switch (event.type) {
+    case "session.status": {
+      const status = String(properties.status || properties.type || "");
+      if (/idle|complete|done|stop/i.test(status)) {
+        return entry(event, {
+          kind: "complete",
+          progressKind: "complete",
+          message: "OpenCode session is idle"
+        });
+      }
+      return entry(event, {
+        kind: "working",
+        progressKind: "thinking",
+        message: "OpenCode is working",
+        showProgress: false
+      });
+    }
     case "session.next.step.started":
       return entry(event, {
         kind: "working",
@@ -97,6 +131,32 @@ export const PawPauseAgentHook = async () => ({
   event: async ({ event }) => {
     const next = eventEntry(event);
     if (next) await write(next);
+  },
+  "chat.message": async (input, output) => {
+    await write({
+      version: 1,
+      source: "OpenCode",
+      id: `chat.message:${input.sessionID}:${input.messageID || Date.now()}`,
+      type: "chat.message",
+      timestampMs: Date.now(),
+      sessionID: input.sessionID,
+      kind: "working",
+      progressKind: "thinking",
+      message: textFromParts(output?.parts) || "OpenCode is thinking"
+    });
+  },
+  "command.execute.before": async (input) => {
+    await write({
+      version: 1,
+      source: "OpenCode",
+      id: `command.execute.before:${input.sessionID}:${Date.now()}`,
+      type: "command.execute.before",
+      timestampMs: Date.now(),
+      sessionID: input.sessionID,
+      kind: "working",
+      progressKind: "script",
+      message: String(input.command || "OpenCode is running a command")
+    });
   },
   "tool.execute.before": async (input) => {
     await write({

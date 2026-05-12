@@ -84,7 +84,7 @@ const AGENT_ACTIVITY_CHECK_INTERVAL_MS = 5000;
 const AGENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
 
-type AgentSource = "Codex" | "Claude Code" | "OpenCode";
+type AgentSource = "Codex" | "Claude Code" | "OpenCode" | "DeepSeek TUI";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
 type AgentProgressKind =
   | "working"
@@ -228,17 +228,19 @@ function visiblePetSize(scale: number): Pick<Electron.Rectangle, "width" | "heig
   };
 }
 
-function petWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
+function compactPetWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
   const petSize = visiblePetSize(scale);
-  if (currentBubble) {
-    return {
-      width: Math.max(BUBBLE_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING * 2),
-      height: petSize.height + BUBBLE_WINDOW_EXTRA_HEIGHT
-    };
-  }
   return {
     width: Math.max(44, petSize.width + PET_WINDOW_PADDING),
     height: Math.max(48, petSize.height + PET_WINDOW_PADDING)
+  };
+}
+
+function petWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
+  const petSize = visiblePetSize(scale);
+  return {
+    width: Math.max(BUBBLE_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING * 2),
+    height: petSize.height + BUBBLE_WINDOW_EXTRA_HEIGHT
   };
 }
 let preScreenBlockBounds: Electron.Rectangle | null = null;
@@ -555,9 +557,9 @@ function updatePetWindowMouseEvents(lyricsModeEnabled = getSettings().lyricsMode
 function showBubble(bubble: SpeechBubble): void {
   if (bubbleTimer) clearTimeout(bubbleTimer);
   currentBubble = bubble;
-  resizePetWindowForScale(getSettings().petScale);
-  sendPetLayout();
+  petLayout = layoutForPetAnchor(petWindow?.getBounds() ?? initialPetBounds());
   sendToPet("pet:show-bubble", bubble);
+  sendPetLayout();
   if (bubble.autoDismissMs) {
     bubbleTimer = setTimeout(() => hideBubble(), bubble.autoDismissMs);
   }
@@ -570,7 +572,7 @@ function hideBubble(): void {
   }
   currentBubble = null;
   sendToPet("pet:hide-bubble");
-  resizePetWindowForScale(getSettings().petScale);
+  petLayout = layoutForPetAnchor(petWindow?.getBounds() ?? initialPetBounds());
   sendPetLayout();
 }
 
@@ -619,27 +621,19 @@ function initialPetBounds(): Electron.Rectangle {
   };
 
   if (!stored) return fallback;
+  const compactSize = compactPetWindowSize();
   return clampBoundsToWorkArea({
     ...fallback,
-    x: stored.x,
-    y: stored.y
+    x: Math.round(stored.x + compactSize.width / 2 - size.width / 2),
+    y: stored.y + compactSize.height - size.height
   });
 }
 
 function persistPetPosition(): void {
   if (!petWindow || petWindow.isDestroyed()) return;
   const bounds = petWindow.getBounds();
-  if (!currentBubble) {
-    store.set("petPosition", { x: bounds.x, y: bounds.y });
-    return;
-  }
-
   const scale = getSettings().petScale;
-  const petSize = visiblePetSize(scale);
-  const compactSize = {
-    width: Math.max(44, petSize.width + PET_WINDOW_PADDING),
-    height: Math.max(48, petSize.height + PET_WINDOW_PADDING)
-  };
+  const compactSize = compactPetWindowSize(scale);
   const petAnchorX = bounds.x + bounds.width / 2 + petLayout.petOffsetX;
   const compactBounds = clampBoundsToWorkArea({
     ...compactSize,
@@ -1430,6 +1424,7 @@ function scheduleDistractionDetection(): void {
 
 function sourceFromAgentWindow(appName: string, title: string): AgentSource | null {
   const target = `${appName} ${title}`;
+  if (/\bdeep\s*seek\b|\bdeepseek(?:[-\s]*tui)?\b/i.test(target)) return "DeepSeek TUI";
   if (/\bclaude(?:\s+code)?\b/i.test(target)) return "Claude Code";
   if (/\bcodex\b/i.test(target)) return "Codex";
   if (/\bopen\s*code\b|\bopencode\b/i.test(target)) return "OpenCode";
@@ -1437,6 +1432,7 @@ function sourceFromAgentWindow(appName: string, title: string): AgentSource | nu
 }
 
 function sourceFromSessionKey(sessionKey: string): AgentSource | null {
+  if (sessionKey.startsWith("DeepSeek TUI:")) return "DeepSeek TUI";
   if (sessionKey.startsWith("Claude Code:")) return "Claude Code";
   if (sessionKey.startsWith("Codex:")) return "Codex";
   if (sessionKey.startsWith("OpenCode:")) return "OpenCode";
@@ -1461,7 +1457,7 @@ set rows to {}
 tell application "System Events"
   repeat with appProcess in application processes
     set appName to name of appProcess
-    if appName is not "PawPause" and appName is not "PawPal" and appName is not "Electron" then
+    if appName is not "PawPause" and appName is not "PawPal" then
       try
         repeat with appWindow in windows of appProcess
           set windowTitle to ""
@@ -1517,6 +1513,33 @@ function rememberAgentWindowTarget(
 ): void {
   const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
   if (activeSource !== event.source) return;
+  const target: AgentWindowTarget = {
+    source: event.source,
+    sessionKey: event.sessionKey,
+    appName: active.appName,
+    windowTitle: active.windowTitle,
+    observedAt: Date.now()
+  };
+  agentWindowTargets.set(event.sessionKey, target);
+  recentAgentWindowTargets.unshift(target);
+  if (recentAgentWindowTargets.length > 30) recentAgentWindowTargets.length = 30;
+}
+
+function looksLikeAgentHostWindow(appName: string, title: string): boolean {
+  const target = `${appName} ${title}`;
+  return /(terminal|iterm|warp|ghostty|wezterm|alacritty|kitty|tabby|rio|hyper|cursor|visual studio code|code|trae|zed|deepseek|codex|claude|opencode|open\s*code)/i.test(
+    target
+  );
+}
+
+function rememberAgentWindowTargetForEvent(
+  event: Pick<AgentMonitorEvent, "sessionKey" | "source">,
+  active: ActiveWindowInfo | null
+): void {
+  if (!active) return;
+  const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
+  if (activeSource && activeSource !== event.source) return;
+  if (!activeSource && !looksLikeAgentHostWindow(active.appName, active.windowTitle)) return;
   const target: AgentWindowTarget = {
     source: event.source,
     sessionKey: event.sessionKey,
@@ -1600,7 +1623,8 @@ async function resolveAgentWindowTarget(sessionKey: string): Promise<AgentWindow
   const windows = await readAgentWindows();
   const knownTarget = agentWindowTargets.get(sessionKey);
   const recentTarget = recentAgentWindowTargets.find((target) => target.sessionKey === sessionKey);
-  const preferredTarget = knownTarget ?? recentTarget;
+  const recentSourceTarget = recentAgentWindowTargets.find((target) => target.source === source);
+  const preferredTarget = knownTarget ?? recentTarget ?? recentSourceTarget;
   const scored = windows
     .map((windowTarget) => ({
       windowTarget,
@@ -1608,7 +1632,7 @@ async function resolveAgentWindowTarget(sessionKey: string): Promise<AgentWindow
     }))
     .filter((candidate) => candidate.score > 0)
     .sort((left, right) => right.score - left.score);
-  return scored[0]?.windowTarget ?? null;
+  return scored[0]?.windowTarget ?? preferredTarget ?? null;
 }
 
 function focusAgentWindowScript(target: Pick<AgentWindowTarget, "appName" | "windowTitle">): string {
@@ -1637,6 +1661,24 @@ tell application "System Events"
           return "focused"
         end if
       end repeat
+      try
+        tell application targetAppName to activate
+      end try
+      try
+        if (count of windows of appProcess) > 0 then
+          set appWindow to item 1 of windows of appProcess
+          try
+            perform action "AXRaise" of appWindow
+          end try
+          try
+            set value of attribute "AXMain" of appWindow to true
+          end try
+          try
+            set focused of appWindow to true
+          end try
+          return "focused-app"
+        end if
+      end try
     end if
   end repeat
 end tell
@@ -1649,8 +1691,19 @@ async function focusAgentWindowForAction(actionId: string): Promise<void> {
   if (!sessionKey || process.platform !== "darwin") return;
   const target = await resolveAgentWindowTarget(sessionKey);
   if (!target) return;
-  await execFileText("/usr/bin/osascript", ["-e", focusAgentWindowScript(target)]);
-  hideBubble();
+  const result = await execFileText("/usr/bin/osascript", ["-e", focusAgentWindowScript(target)]);
+  if (/focused/i.test(result)) hideBubble();
+}
+
+function openExternalUrl(rawUrl: string): void {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "https:") return;
+    if (url.hostname !== "petdex.crafter.run") return;
+    void shell.openExternal(url.toString());
+  } catch {
+    // Ignore malformed renderer input.
+  }
 }
 
 function titleLooksBusy(title: string): boolean {
@@ -1669,9 +1722,9 @@ function titleLooksFailed(title: string): boolean {
   return /failed|failure|error|blocked|crashed|报错|失败|错误|无法继续/.test(title.toLowerCase());
 }
 
-function execFileText(file: string, args: string[]): Promise<string> {
+function execFileText(file: string, args: string[], timeout = 1500): Promise<string> {
   return new Promise((resolveText) => {
-    execFile(file, args, { timeout: 1500 }, (_error, stdout) => {
+    execFile(file, args, { timeout }, (_error, stdout) => {
       resolveText(stdout);
     });
   });
@@ -1691,6 +1744,22 @@ function eventTimeMs(value: unknown): number | null {
   if (!raw) return null;
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function numberValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseJsonRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "string") return null;
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
 }
 
 function hashText(input: string): string {
@@ -1788,6 +1857,10 @@ function parseJsonLinesTail(path: string): Array<Record<string, unknown>> {
   } catch {
     return [];
   }
+}
+
+function unknownArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
 }
 
 function extractTextFromContent(content: unknown, typeName: string): string {
@@ -2136,6 +2209,309 @@ function collectOpenCodeHookEvents(): AgentMonitorEvent[] {
   return events;
 }
 
+function openCodeDatabasePath(): string | null {
+  const home = app.getPath("home");
+  const xdgDataHome = process.env.XDG_DATA_HOME || join(home, ".local", "share");
+  const candidates = uniqueStrings([
+    join(xdgDataHome, "opencode", "opencode.db"),
+    join(home, ".local", "share", "opencode", "opencode.db"),
+    join(home, "Library", "Application Support", "opencode", "opencode.db"),
+    join(home, "AppData", "Roaming", "opencode", "opencode.db")
+  ]);
+  return candidates.find((file) => existsSync(file)) ?? null;
+}
+
+async function execSqliteJson(databasePath: string, sql: string): Promise<Array<Record<string, unknown>>> {
+  const candidates = uniqueStrings([
+    process.env.SQLITE3_PATH,
+    process.platform === "darwin" ? "/usr/bin/sqlite3" : undefined,
+    "sqlite3"
+  ]);
+
+  for (const executable of candidates) {
+    if (isAbsolute(executable) && !existsSync(executable)) continue;
+    const output = await execFileText(executable, ["-json", databasePath, sql], 1800);
+    const trimmed = output.trim();
+    if (!trimmed.startsWith("[")) continue;
+    try {
+      const rows = JSON.parse(trimmed);
+      if (Array.isArray(rows)) {
+        return rows.filter((row): row is Record<string, unknown> => Boolean(asRecord(row)));
+      }
+    } catch {
+      // Try the next sqlite executable candidate.
+    }
+  }
+
+  return [];
+}
+
+function normalizeOpenCodeDatabasePart(row: Record<string, unknown>): AgentMonitorEvent | null {
+  const timestampMs = numberValue(row.time_updated) ?? numberValue(row.time_created);
+  if (timestampMs === null) return null;
+
+  const part = parseJsonRecord(row.part_data);
+  const message = parseJsonRecord(row.message_data);
+  if (!part || !message) return null;
+
+  const partId = stringValue(row.id);
+  const messageId = stringValue(row.message_id);
+  const sessionID = stringValue(row.session_id) || "unknown";
+  const role = stringValue(message.role);
+  const type = stringValue(part.type);
+  if (!partId || !type) return null;
+
+  const base = {
+    id: `OpenCode:db:${sessionID}:${messageId}:${partId}:${timestampMs}`,
+    source: "OpenCode" as const,
+    sessionKey: `OpenCode:${sessionID}`,
+    timestampMs
+  };
+
+  if (role === "user" && type === "text") {
+    return {
+      ...base,
+      kind: "working",
+      message: "OpenCode is thinking",
+      progressKind: "thinking",
+      state: "thinking"
+    };
+  }
+
+  if (role !== "assistant") return null;
+
+  if (type === "step-start" || type === "reasoning") {
+    return {
+      ...base,
+      kind: "working",
+      message: "OpenCode is thinking",
+      progressKind: "thinking",
+      state: "thinking",
+      showProgress: false
+    };
+  }
+
+  if (type === "text") {
+    return {
+      ...base,
+      kind: "working",
+      message: compactAgentText(stringValue(part.text) || "OpenCode is responding"),
+      progressKind: "thinking",
+      state: "thinking",
+      showProgress: false
+    };
+  }
+
+  if (/tool|command|bash|shell/i.test(type)) {
+    const tool = stringValue(part.tool) || stringValue(part.name) || stringValue(part.command) || type;
+    return {
+      ...base,
+      kind: "working",
+      message: tool,
+      progressKind: classifyAgentProgressKind(tool, "tool"),
+      state: "thinking"
+    };
+  }
+
+  if (type === "step-finish") {
+    const reason = stringValue(part.reason);
+    const failed = /error|fail|cancel/i.test(reason);
+    return {
+      ...base,
+      kind: failed ? "failed" : "complete",
+      message: failed ? "OpenCode ran into a problem" : "OpenCode session is idle",
+      progressKind: failed ? "failed" : "complete",
+      state: failed ? "failed" : "waving"
+    };
+  }
+
+  return null;
+}
+
+async function collectOpenCodeDatabaseEvents(): Promise<AgentMonitorEvent[]> {
+  const databasePath = openCodeDatabasePath();
+  if (!databasePath) return [];
+
+  const newestAllowedAt = Date.now() - AGENT_EVENT_MAX_AGE_MS - 30_000;
+  const rows = await execSqliteJson(
+    databasePath,
+    `select p.id, p.session_id, p.message_id, p.time_created, p.time_updated, p.data as part_data, m.data as message_data
+from part p join message m on m.id = p.message_id
+where p.time_updated >= ${Math.max(0, newestAllowedAt)}
+order by p.time_updated asc
+limit 120`
+  );
+
+  return rows
+    .map(normalizeOpenCodeDatabasePart)
+    .filter((event): event is AgentMonitorEvent => Boolean(event));
+}
+
+function deepSeekSessionRoot(): string {
+  return join(app.getPath("home"), ".deepseek", "sessions");
+}
+
+function deepSeekAuditLogPath(): string {
+  return join(app.getPath("home"), ".deepseek", "audit.log");
+}
+
+function extractDeepSeekContentText(content: unknown, typeName: string): string {
+  return unknownArray(content)
+    .map((part) => {
+      const record = asRecord(part);
+      if (!record || record.type !== typeName) return "";
+      return stringValue(record.text) || stringValue(record.thinking);
+    })
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function lastDeepSeekMessage(messages: unknown): Record<string, unknown> | null {
+  const records = unknownArray(messages)
+    .map(asRecord)
+    .filter((message): message is Record<string, unknown> => Boolean(message));
+  return records.at(-1) ?? null;
+}
+
+function deepSeekToolNames(content: unknown): string[] {
+  return uniqueStrings(
+    unknownArray(content)
+      .map(asRecord)
+      .filter((part): part is Record<string, unknown> => part !== null && part.type === "tool_use")
+      .map((part) => stringValue(part.name))
+  );
+}
+
+function makeDeepSeekEvent(
+  file: string,
+  sessionId: string,
+  timestampMs: number,
+  suffix: string,
+  classified: Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs">
+): AgentMonitorEvent {
+  return {
+    ...classified,
+    id: `DeepSeek TUI:${file}:${sessionId}:${timestampMs}:${suffix}`,
+    source: "DeepSeek TUI",
+    sessionKey: `DeepSeek TUI:${sessionId || file}`,
+    timestampMs
+  };
+}
+
+function collectDeepSeekSessionEvents(): AgentMonitorEvent[] {
+  const files = listRecentFiles(deepSeekSessionRoot(), ".json", 6);
+  const events: AgentMonitorEvent[] = [];
+
+  for (const file of files) {
+    try {
+      const data = asRecord(JSON.parse(readFileSync(file, "utf8")));
+      const metadata = asRecord(data?.metadata);
+      if (!data || !metadata) continue;
+
+      const sessionId = stringValue(metadata.id) || file;
+      const timestampMs = eventTimeMs(metadata.updated_at) ?? statSync(file).mtimeMs;
+      const lastMessage = lastDeepSeekMessage(data.messages);
+      if (!lastMessage) continue;
+
+      const role = stringValue(lastMessage.role);
+      const content = lastMessage.content;
+      const text = extractDeepSeekContentText(content, "text");
+      const thinking = extractDeepSeekContentText(content, "thinking");
+      const toolNames = deepSeekToolNames(content);
+
+      if (role === "user") {
+        const message = compactAgentText(text || "DeepSeek TUI is thinking");
+        events.push(
+          makeDeepSeekEvent(file, sessionId, timestampMs, `user:${hashText(message)}`, {
+            kind: "working",
+            message: "DeepSeek TUI is thinking",
+            progressKind: "thinking",
+            state: "thinking"
+          })
+        );
+        continue;
+      }
+
+      if (role !== "assistant") continue;
+
+      if (thinking || toolNames.length > 0) {
+        const tool = toolNames.at(-1);
+        events.push(
+          makeDeepSeekEvent(file, sessionId, Math.max(0, timestampMs - 1000), `working:${hashText(thinking || tool || "")}`, {
+            kind: "working",
+            message: tool || "DeepSeek TUI is thinking",
+            progressKind: tool ? classifyAgentProgressKind(tool, "tool") : "thinking",
+            state: "thinking",
+            showProgress: false
+          })
+        );
+      }
+
+      const classified = classifyAgentText(text);
+      events.push(
+        makeDeepSeekEvent(file, sessionId, timestampMs, `assistant:${hashText(text)}`, {
+          kind: classified?.kind ?? "complete",
+          message: classified?.message ?? compactAgentText(text || "DeepSeek TUI responded"),
+          progressKind: classified?.progressKind ?? "complete",
+          state: classified?.state ?? "waving"
+        })
+      );
+    } catch {
+      // Ignore partially-written session files.
+    }
+  }
+
+  return events;
+}
+
+function collectDeepSeekAuditEvents(): AgentMonitorEvent[] {
+  const file = deepSeekAuditLogPath();
+  if (!existsSync(file)) return [];
+
+  const events: AgentMonitorEvent[] = [];
+  for (const line of parseJsonLinesTail(file)) {
+    const timestampMs = eventTimeMs(line.ts);
+    const details = asRecord(line.details);
+    if (timestampMs === null || !details) continue;
+
+    const eventName = stringValue(line.event);
+    const sessionId = stringValue(details.session_id) || file;
+    const toolName = stringValue(details.tool_name);
+    const mode = stringValue(details.mode);
+    const base = {
+      source: "DeepSeek TUI" as const,
+      sessionKey: `DeepSeek TUI:${sessionId}`,
+      timestampMs
+    };
+
+    if (eventName === "tool.approval.prompted") {
+      events.push({
+        ...base,
+        id: `DeepSeek TUI:audit:${sessionId}:${timestampMs}:permission:${toolName}`,
+        kind: "needs-review",
+        message: toolName || "DeepSeek TUI needs permission",
+        progressKind: "permission",
+        state: "reviewing"
+      });
+      continue;
+    }
+
+    if (/tool\.approval\.auto_approve|tool\.approval\.approved/i.test(eventName)) {
+      events.push({
+        ...base,
+        id: `DeepSeek TUI:audit:${sessionId}:${timestampMs}:tool:${toolName}:${mode}`,
+        kind: "working",
+        message: toolName || "DeepSeek TUI is using a tool",
+        progressKind: classifyAgentProgressKind(toolName, "tool"),
+        state: "thinking"
+      });
+    }
+  }
+
+  return events;
+}
+
 function collectCodexSessionEvents(): AgentMonitorEvent[] {
   const sessionsRoot = join(app.getPath("home"), ".codex", "sessions");
   const files = listRecentFiles(sessionsRoot, ".jsonl", 4);
@@ -2391,10 +2767,14 @@ async function checkAgentActivityNow(): Promise<void> {
       ...collectCodexSessionEvents(),
       ...collectClaudeSessionEvents(),
       ...collectClaudeStatusEvents(),
-      ...collectOpenCodeHookEvents()
+      ...collectOpenCodeHookEvents(),
+      ...(await collectOpenCodeDatabaseEvents()),
+      ...collectDeepSeekSessionEvents(),
+      ...collectDeepSeekAuditEvents()
     ]
       .filter((event) => event.timestampMs >= newestAllowedAt && event.timestampMs <= now + 30_000)
       .sort((left, right) => left.timestampMs - right.timestampMs);
+    const active = await readActiveWindow().catch(() => null);
 
     if (!agentMonitorPrimed) {
       const latestWorking = events.filter((event) => event.kind === "working").at(-1);
@@ -2404,6 +2784,7 @@ async function checkAgentActivityNow(): Promise<void> {
       }
       agentMonitorPrimed = true;
       if (latestWorking && now - latestWorking.timestampMs < 30_000) {
+        rememberAgentWindowTargetForEvent(latestWorking, active);
         markAgentSessionWorking(latestWorking);
         if (latestWorking.showProgress !== false) showAgentWorkingPose(latestWorking);
       }
@@ -2415,6 +2796,7 @@ async function checkAgentActivityNow(): Promise<void> {
       if (agentSeenEventIds.has(event.id)) continue;
       if (event.kind === "working") {
         rememberAgentEvent(event.id);
+        rememberAgentWindowTargetForEvent(event, active);
         markAgentSessionWorking(event);
         if (event.showProgress !== false) showAgentWorkingPose(event);
         continue;
@@ -2423,10 +2805,10 @@ async function checkAgentActivityNow(): Promise<void> {
         rememberAgentEvent(event.id);
         continue;
       }
+      rememberAgentWindowTargetForEvent(event, active);
       if (notifyAgentEvent(event)) rememberAgentEvent(event.id);
     }
 
-    const active = await readActiveWindow().catch(() => null);
     if (!active) return;
     const activeSource = sourceFromAgentWindow(active.appName, active.windowTitle);
     if (!activeSource) return;
@@ -2882,6 +3264,7 @@ function registerIpc(): void {
   );
   ipcMain.on("pet:drag-stop", stopPetDrag);
   ipcMain.on("bubble:action", (_event, actionId: string) => handleBubbleAction(actionId));
+  ipcMain.on("app:open-external", (_event, url: string) => openExternalUrl(url));
   ipcMain.on("settings:update", (_event, partial: Partial<Settings>) => {
     setSettings({ ...getSettings(), ...partial });
   });

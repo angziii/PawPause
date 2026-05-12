@@ -4,7 +4,7 @@ import "./globals.css";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pawpause.vercel.app";
 const title = "PawPause - Pixel desktop companion";
 const description =
-  "A pixel desktop companion for breaks, water, focus, and live Codex / Claude Code / OpenCode activity nudges.";
+  "A pixel desktop companion for breaks, water, focus, and live Codex, Claude Code, OpenCode, and DeepSeek TUI activity nudges.";
 const socialImage = "/x-card-preview.png";
 const socialImageAlt = "PawPause landing page preview";
 
