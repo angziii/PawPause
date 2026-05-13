@@ -4,7 +4,7 @@ import "./globals.css";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pawpause.vercel.app";
 const title = "PawPause - Pixel desktop companion for macOS and Windows";
 const description =
-  "PawPause is a pixel desktop companion for macOS and Windows that supports breaks, hydration, focus sessions, and local AI coding-agent activity nudges.";
+  "PawPause is a pixel desktop companion for macOS and Windows with breaks, hydration, focus, and live Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes activity nudges.";
 const socialImage = "/x-card-preview.png";
 const socialImageAlt = "PawPause landing page preview";
 

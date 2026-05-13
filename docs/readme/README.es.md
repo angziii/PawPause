@@ -26,7 +26,7 @@ Es local-first: los ajustes, estadísticas, compañeros importados e historial d
 - Recordatorios de descanso y modo opcional de bloqueo de pantalla
 - Recordatorios de agua con estadísticas históricas
 - Detección de distracciones en macOS por app o palabra clave
-- Alertas locales de Codex / Claude Code / OpenCode / DeepSeek TUI al terminar o requerir revisión
+- Alertas locales de Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes al terminar o requerir revisión
 - Importación de paquetes `pet.json + spritesheet.webp/png`
 - Lectura automática de personajes PetDex en `~/.codex/pets`
 - Interfaz en 9 idiomas y modo oscuro del sistema

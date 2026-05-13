@@ -45,7 +45,7 @@ PawPause is a macOS and Windows desktop companion. It keeps a small pixel friend
 - **Break intervention**: optional screen-block break mode when a reminder is easy to ignore.
 - **Hydration reminders**: water reminders with daily and historical stats.
 - **Focus mode**: macOS active-window detection can trigger full-screen distraction nudges for blocked apps or keywords.
-- **Agent activity alerts**: local Codex, Claude Code, OpenCode, and DeepSeek TUI events can trigger completion, failure, review-needed, and progress nudges.
+- **Agent activity alerts**: local Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes events can trigger completion, failure, review-needed, and progress nudges.
 - **Pet imports**: import `pet.json + spritesheet.webp/png` folders or zip packages in the app.
 - **PetDex compatibility**: PawPause reads companions installed to `~/.codex/pets`.
 - **Multilingual UI**: English, Chinese, Japanese, Korean, French, German, Russian, Arabic, and Spanish.
@@ -77,6 +77,27 @@ The plugin writes JSONL events to `~/.local/share/pawpause/agent-events/opencode
 ## DeepSeek TUI Activity
 
 PawPause also watches local DeepSeek TUI activity without a plugin. It reads recent session updates from `~/.deepseek/sessions` and approval events from `~/.deepseek/audit.log`, so normal chats, tool use, completion, failures, and permission prompts can move the companion.
+
+## Hermes Agent Hook
+
+PawPause can consume Hermes Agent lifecycle events through a small Hermes plugin:
+
+```bash
+mkdir -p ~/.hermes/plugins
+cp -R integrations/hermes/pawpause-agent-hook ~/.hermes/plugins/
+```
+
+Then enable it in `~/.hermes/config.yaml`:
+
+```yaml
+plugins:
+  enabled:
+    - pawpause-agent-hook
+```
+
+The plugin writes JSONL events to `~/.local/share/pawpause/agent-events/hermes.jsonl`. You can override that path with `PAWPAUSE_HERMES_AGENT_EVENTS`.
+
+If the plugin is not installed, PawPause still watches recent Hermes session files in `~/.hermes/sessions` as a local fallback, so normal chat turns can trigger progress and completion nudges.
 
 ## Import Companions
 

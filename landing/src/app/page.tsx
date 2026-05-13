@@ -4,11 +4,11 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pawpause.vercel.app
 const repoUrl = "https://github.com/angziii/PawPause";
 const latestReleaseUrl = `${repoUrl}/releases/latest`;
 const petdexUrl = "https://github.com/crafter-station/petdex";
+const hermesAgentUrl = "https://github.com/NousResearch/hermes-agent";
 const wcagPauseUrl = "https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html";
 const appleNotificationsUrl = "https://developer.apple.com/design/human-interface-guidelines/managing-notifications";
 const microsoftNotificationsUrl =
   "https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-ux-guidance";
-
 const faqs = [
   {
     question: "What is PawPause?",
@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "Which AI coding tools can PawPause react to?",
     answer:
-      "PawPause v1.0.3 includes local activity nudges for Codex, Claude Code, OpenCode, and DeepSeek TUI workflows.",
+      "PawPause v1.0.3 includes local activity nudges for Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes Agent workflows.",
   },
   {
     question: "Where can I download PawPause?",
@@ -172,6 +172,8 @@ export default function Home() {
             PawPause also links to its <a href={repoUrl}>GitHub source repository</a>,{" "}
             <a href={latestReleaseUrl}>current release downloads</a>, and the{" "}
             <a href={petdexUrl}>PetDex project</a> that inspired its companion package compatibility.
+            Hermes activity support targets the{" "}
+            <a href={hermesAgentUrl}>NousResearch Hermes Agent project</a>.
           </p>
         </div>
       </section>

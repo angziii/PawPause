@@ -85,7 +85,7 @@ const AGENT_ACTIVITY_CHECK_INTERVAL_MS = 5000;
 const AGENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
 
-type AgentSource = "Codex" | "Claude Code" | "OpenCode" | "DeepSeek TUI";
+type AgentSource = "Codex" | "Claude Code" | "OpenCode" | "DeepSeek TUI" | "Hermes";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
 type AgentProgressKind =
   | "working"
@@ -1452,6 +1452,7 @@ function scheduleDistractionDetection(): void {
 function sourceFromAgentWindow(appName: string, title: string): AgentSource | null {
   const target = `${appName} ${title}`;
   if (/\bdeep\s*seek\b|\bdeepseek(?:[-\s]*tui)?\b/i.test(target)) return "DeepSeek TUI";
+  if (/\bhermes\b/i.test(target)) return "Hermes";
   if (/\bclaude(?:\s+code)?\b/i.test(target)) return "Claude Code";
   if (/\bcodex\b/i.test(target)) return "Codex";
   if (/\bopen\s*code\b|\bopencode\b/i.test(target)) return "OpenCode";
@@ -1460,6 +1461,7 @@ function sourceFromAgentWindow(appName: string, title: string): AgentSource | nu
 
 function sourceFromSessionKey(sessionKey: string): AgentSource | null {
   if (sessionKey.startsWith("DeepSeek TUI:")) return "DeepSeek TUI";
+  if (sessionKey.startsWith("Hermes:")) return "Hermes";
   if (sessionKey.startsWith("Claude Code:")) return "Claude Code";
   if (sessionKey.startsWith("Codex:")) return "Codex";
   if (sessionKey.startsWith("OpenCode:")) return "OpenCode";
@@ -1554,7 +1556,7 @@ function rememberAgentWindowTarget(
 
 function looksLikeAgentHostWindow(appName: string, title: string): boolean {
   const target = `${appName} ${title}`;
-  return /(terminal|iterm|warp|ghostty|wezterm|alacritty|kitty|tabby|rio|hyper|cursor|visual studio code|code|trae|zed|deepseek|codex|claude|opencode|open\s*code)/i.test(
+  return /(terminal|iterm|warp|ghostty|wezterm|alacritty|kitty|tabby|rio|hyper|cursor|visual studio code|code|trae|zed|deepseek|hermes|codex|claude|opencode|open\s*code)/i.test(
     target
   );
 }
@@ -2092,6 +2094,17 @@ function openCodeHookEventFiles(): string[] {
   ]).filter((file) => existsSync(file));
 }
 
+function hermesHookEventFiles(): string[] {
+  const home = app.getPath("home");
+  return uniqueStrings([
+    process.env.PAWPAUSE_HERMES_AGENT_EVENTS,
+    process.env.PAWPAUSE_AGENT_EVENTS,
+    join(home, ".local", "share", "pawpause", "agent-events", "hermes.jsonl"),
+    join(home, "Library", "Application Support", "PawPause", "agent-events", "hermes.jsonl"),
+    join(home, "AppData", "Roaming", "PawPause", "agent-events", "hermes.jsonl")
+  ]).filter((file) => existsSync(file));
+}
+
 function agentEventKind(value: string): AgentEventKind | null {
   if (value === "complete" || value === "failed" || value === "needs-review" || value === "working") {
     return value;
@@ -2201,6 +2214,81 @@ function normalizeOpenCodeRawEvent(
   return null;
 }
 
+function normalizeHermesRawEvent(
+  record: Record<string, unknown>
+): Omit<AgentMonitorEvent, "id" | "source" | "sessionKey" | "timestampMs"> | null {
+  const eventName = stringValue(record.event) || stringValue(record.type) || stringValue(record.hook_event_name);
+  const message = stringValue(record.message);
+
+  if (eventName === "on_session_finalize" || eventName === "on_session_end") {
+    return {
+      kind: "complete",
+      message: message || "Hermes session finished",
+      progressKind: "complete",
+      state: "waving"
+    };
+  }
+
+  if (eventName === "pre_approval_request") {
+    return {
+      kind: "needs-review",
+      message: message || "Hermes needs permission",
+      progressKind: "permission",
+      state: "reviewing"
+    };
+  }
+
+  if (eventName === "post_approval_response") {
+    const choice = stringValue(record.choice);
+    if (choice === "deny" || choice === "timeout") {
+      return {
+        kind: "failed",
+        message: message || "Hermes approval was denied",
+        progressKind: "failed",
+        state: "failed"
+      };
+    }
+    return null;
+  }
+
+  if (eventName === "pre_llm_call" || eventName === "post_llm_call") {
+    return {
+      kind: "working",
+      message: message || "Hermes is thinking",
+      progressKind: "thinking",
+      state: "thinking",
+      showProgress: eventName === "post_llm_call" ? false : undefined
+    };
+  }
+
+  if (eventName === "pre_tool_call" || eventName === "post_tool_call") {
+    const toolName = stringValue(record.tool_name) || stringValue(record.toolName) || stringValue(record.tool);
+    const progressKind = classifyAgentProgressKind(toolName || message || "tool", "tool");
+    return {
+      kind: "working",
+      message: toolName || message || "Hermes is using a tool",
+      progressKind,
+      state: "thinking",
+      showProgress: eventName === "post_tool_call" ? false : undefined
+    };
+  }
+
+  return null;
+}
+
+function eventTimestampMs(record: Record<string, unknown>): number {
+  const raw =
+    record.timestampMs ??
+    record.timestamp_ms ??
+    record.timestamp ??
+    record.time ??
+    record.created_at ??
+    record.createdAt;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw < 10_000_000_000 ? raw * 1000 : raw;
+  const parsed = Date.parse(stringValue(raw));
+  return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
 function normalizeOpenCodeHookEvent(record: Record<string, unknown>, file: string): AgentMonitorEvent | null {
   const timestampMs =
     typeof record.timestampMs === "number" && Number.isFinite(record.timestampMs)
@@ -2243,6 +2331,142 @@ function collectOpenCodeHookEvents(): AgentMonitorEvent[] {
       if (event) events.push(event);
     }
   }
+  return events;
+}
+
+function normalizeHermesHookEvent(record: Record<string, unknown>, file: string): AgentMonitorEvent | null {
+  const source = stringValue(record.source);
+  if (source && !/hermes/i.test(source)) return null;
+
+  const kind = agentEventKind(stringValue(record.kind));
+  const progressKind = agentProgressKind(stringValue(record.progressKind) || stringValue(record.progress_kind));
+  const classified =
+    kind === null
+      ? normalizeHermesRawEvent(record)
+      : {
+          kind,
+          message: stringValue(record.message) || "Hermes updated",
+          progressKind,
+          state: stateForAgentEvent(kind, progressKind)
+        };
+  if (!classified) return null;
+
+  const timestampMs = eventTimestampMs(record);
+  const sessionId =
+    stringValue(record.session_id) ||
+    stringValue(record.sessionID) ||
+    stringValue(record.sessionId) ||
+    stringValue(record.session_key) ||
+    stringValue(record.task_id) ||
+    "unknown";
+  const rawId =
+    stringValue(record.id) ||
+    `${sessionId}:${timestampMs}:${classified.kind}:${hashText(classified.message)}`;
+
+  return {
+    ...classified,
+    id: `Hermes:${rawId}`,
+    source: "Hermes",
+    sessionKey: `Hermes:${sessionId || file}`,
+    timestampMs,
+    showProgress: record.showProgress === false || record.show_progress === false ? false : classified.showProgress
+  };
+}
+
+function collectHermesHookEvents(): AgentMonitorEvent[] {
+  const events: AgentMonitorEvent[] = [];
+  for (const file of hermesHookEventFiles()) {
+    for (const line of parseJsonLinesTail(file)) {
+      const event = normalizeHermesHookEvent(line, file);
+      if (event) events.push(event);
+    }
+  }
+  return events;
+}
+
+function hermesSessionRoot(): string {
+  return join(app.getPath("home"), ".hermes", "sessions");
+}
+
+function hermesMessageText(message: Record<string, unknown>): string {
+  const content = message.content;
+  if (typeof content === "string") return content;
+  return unknownArray(content)
+    .map((part) => {
+      if (typeof part === "string") return part;
+      const record = asRecord(part);
+      if (!record) return "";
+      return stringValue(record.text) || stringValue(record.content);
+    })
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function collectHermesSessionEvents(): AgentMonitorEvent[] {
+  const files = listRecentFiles(hermesSessionRoot(), ".json", 6);
+  const events: AgentMonitorEvent[] = [];
+
+  for (const file of files) {
+    try {
+      const data = asRecord(JSON.parse(readFileSync(file, "utf8")));
+      if (!data) continue;
+      const messages = unknownArray(data.messages).map(asRecord).filter((message): message is Record<string, unknown> => Boolean(message));
+      const lastMessage = messages.at(-1);
+      if (!lastMessage) continue;
+
+      const sessionId = stringValue(data.session_id) || file;
+      const timestampMs = eventTimeMs(data.last_updated) ?? statSync(file).mtimeMs;
+      const messageCount = numberValue(data.message_count) ?? messages.length;
+      const role = stringValue(lastMessage.role);
+      const sessionKey = `Hermes:${sessionId}`;
+
+      if (role === "user") {
+        events.push({
+          id: `Hermes:session:${sessionId}:${messageCount}:user:${timestampMs}`,
+          source: "Hermes",
+          sessionKey,
+          kind: "working",
+          message: "Hermes is thinking",
+          progressKind: "thinking",
+          state: "thinking",
+          timestampMs
+        });
+        continue;
+      }
+
+      if (role !== "assistant") continue;
+
+      const text = hermesMessageText(lastMessage);
+      const classified = classifyAgentText(text);
+      const hasTerminalState = classified?.kind === "failed" || classified?.kind === "needs-review";
+      const terminalTimestampMs = Math.max(0, timestampMs - (hasTerminalState ? 0 : 1));
+      events.push({
+        id: `Hermes:session:${sessionId}:${messageCount}:working:${timestampMs}`,
+        source: "Hermes",
+        sessionKey,
+        kind: "working",
+        message: stringValue(lastMessage.reasoning) || stringValue(lastMessage.reasoning_content) || "Hermes is thinking",
+        progressKind: "thinking",
+        state: "thinking",
+        timestampMs: Math.max(0, timestampMs - 1000),
+        showProgress: false
+      });
+      events.push({
+        id: `Hermes:session:${sessionId}:${messageCount}:assistant:${timestampMs}`,
+        source: "Hermes",
+        sessionKey,
+        kind: classified?.kind ?? "complete",
+        message: classified?.message ?? "Hermes replied",
+        progressKind: classified?.progressKind ?? "complete",
+        state: classified?.state ?? "waving",
+        timestampMs: terminalTimestampMs
+      });
+    } catch {
+      // Ignore partially-written session files.
+    }
+  }
+
   return events;
 }
 
@@ -2807,7 +3031,9 @@ async function checkAgentActivityNow(): Promise<void> {
       ...collectOpenCodeHookEvents(),
       ...(await collectOpenCodeDatabaseEvents()),
       ...collectDeepSeekSessionEvents(),
-      ...collectDeepSeekAuditEvents()
+      ...collectDeepSeekAuditEvents(),
+      ...collectHermesSessionEvents(),
+      ...collectHermesHookEvents()
     ]
       .filter((event) => event.timestampMs >= newestAllowedAt && event.timestampMs <= now + 30_000)
       .sort((left, right) => left.timestampMs - right.timestampMs);

@@ -96,7 +96,7 @@ const CORE_I18N = {
       ],
       agentDone: [
         "你的 Agent 好像完成啦，去看一眼吧",
-        "Codex/Claude/OpenCode/DeepSeek 那边可能收工了",
+        "Codex/Claude/OpenCode/DeepSeek/Hermes 那边可能收工了",
         "工作结果出来啦，看看要不要接着处理"
       ],
       agentWorking: [
@@ -276,7 +276,7 @@ const CORE_I18N = {
       detectionErrorHelp: "活动窗口检测暂时失败。请检查权限后，重新开启分心检测或重启应用。",
       detectionPreviewHelp: "正在预览当前活动窗口。开始专注后，命中规则会触发分心提醒。",
       detectionFocusHelp: "专注期间正在检测。命中屏蔽应用或关键词会触发分心提醒。",
-      agentActivityHelp: "监听 Codex、Claude Code、OpenCode 和 DeepSeek TUI 的本地会话事件，只在完成、失败或需要处理时提醒。"
+      agentActivityHelp: "监听 Codex、Claude Code、OpenCode、DeepSeek TUI 和 Hermes 的本地会话事件，只在完成、失败或需要处理时提醒。"
     },
     system: {
       unsupportedDistraction: "分心检测目前仅支持 macOS。"
@@ -346,7 +346,7 @@ const CORE_I18N = {
       ],
       agentDone: [
         "Your agent looks done. Take a look?",
-        "Codex, Claude, OpenCode, or DeepSeek TUI may have finished.",
+        "Codex, Claude, OpenCode, DeepSeek TUI, or Hermes may have finished.",
         "The result is ready. Want to review it?"
       ],
       agentWorking: [
@@ -531,7 +531,7 @@ const CORE_I18N = {
       detectionFocusHelp:
         "Watching during Focus. Matched blocked apps or keywords will trigger a distraction nudge.",
       agentActivityHelp:
-        "Watches local Codex, Claude Code, OpenCode, and DeepSeek TUI events, and only nudges on completion, failure, or review-needed items."
+        "Watches local Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes events, and only nudges on completion, failure, or review-needed items."
     },
     system: {
       unsupportedDistraction: "Distraction detection currently supports macOS only."
@@ -1204,7 +1204,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "アクティブウィンドウ検出に失敗しました。権限を確認してから再度有効化するか、アプリを再起動してください。",
     detectionPreviewHelp: "現在のアクティブウィンドウをプレビュー中です。集中を開始すると一致したルールで通知します。",
     detectionFocusHelp: "集中中に監視しています。ブロック対象のアプリやキーワードに一致すると通知します。",
-    agentActivityHelp: "Codex、Claude Code、OpenCode、DeepSeek TUI のローカルセッションイベントを監視し、完了・失敗・確認が必要な時だけ通知します。"
+    agentActivityHelp: "Codex、Claude Code、OpenCode、DeepSeek TUI、Hermes のローカルセッションイベントを監視し、完了・失敗・確認が必要な時だけ通知します。"
   },
   ko: {
     title: "설정",
@@ -1313,7 +1313,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "활성 창 감지에 실패했습니다. 권한을 확인한 뒤 다시 켜거나 앱을 재시작하세요.",
     detectionPreviewHelp: "현재 활성 창을 미리 보는 중입니다. 집중을 시작하면 일치한 규칙이 방해 알림을 발생시킵니다.",
     detectionFocusHelp: "집중 중 감지하고 있습니다. 차단 앱 또는 키워드와 일치하면 방해 알림을 표시합니다.",
-    agentActivityHelp: "Codex, Claude Code, OpenCode, DeepSeek TUI 로컬 세션 이벤트를 감시하고 완료, 실패, 확인 필요 상황에서만 알려줍니다."
+    agentActivityHelp: "Codex, Claude Code, OpenCode, DeepSeek TUI, Hermes 로컬 세션 이벤트를 감시하고 완료, 실패, 확인 필요 상황에서만 알려줍니다."
   },
   es: {
     title: "Ajustes",
@@ -1422,7 +1422,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "La detección de ventana activa falló. Revisa permisos y vuelve a activarla o reinicia la app.",
     detectionPreviewHelp: "Previsualizando la ventana activa. Inicia Enfoque para recibir avisos al coincidir con reglas.",
     detectionFocusHelp: "Vigilando durante el enfoque. Las apps o palabras bloqueadas activarán un aviso.",
-    agentActivityHelp: "Vigila eventos locales de Codex, Claude Code, OpenCode y DeepSeek TUI, y solo avisa al terminar, fallar o requerir revisión."
+    agentActivityHelp: "Vigila eventos locales de Codex, Claude Code, OpenCode, DeepSeek TUI y Hermes, y solo avisa al terminar, fallar o requerir revisión."
   },
   fr: {
     title: "Réglages",
@@ -1531,7 +1531,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "La détection de fenêtre active a échoué. Vérifie les permissions puis réactive-la ou redémarre l'app.",
     detectionPreviewHelp: "Prévisualisation de la fenêtre active. Démarre la concentration pour déclencher les règles correspondantes.",
     detectionFocusHelp: "Surveillance pendant la concentration. Les apps ou mots-clés bloqués déclenchent un rappel.",
-    agentActivityHelp: "Surveille les événements locaux Codex, Claude Code, OpenCode et DeepSeek TUI et ne signale que les fins, échecs ou éléments à revoir."
+    agentActivityHelp: "Surveille les événements locaux Codex, Claude Code, OpenCode, DeepSeek TUI et Hermes et ne signale que les fins, échecs ou éléments à revoir."
   },
   ar: {
     title: "الإعدادات",
@@ -1640,7 +1640,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "فشل كشف النافذة النشطة. تحقق من الأذونات ثم فعّل الكشف أو أعد تشغيل التطبيق.",
     detectionPreviewHelp: "تتم معاينة النافذة النشطة. ابدأ التركيز لتفعيل التنبيهات عند مطابقة القواعد.",
     detectionFocusHelp: "تتم المراقبة أثناء التركيز. التطبيقات أو الكلمات المحظورة ستطلق تنبيهًا.",
-    agentActivityHelp: "يراقب أحداث Codex و Claude Code و OpenCode و DeepSeek TUI المحلية، وينبه فقط عند الاكتمال أو الفشل أو الحاجة إلى مراجعة."
+    agentActivityHelp: "يراقب أحداث Codex و Claude Code و OpenCode و DeepSeek TUI و Hermes المحلية، وينبه فقط عند الاكتمال أو الفشل أو الحاجة إلى مراجعة."
   },
   de: {
     title: "Einstellungen",
@@ -1749,7 +1749,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "Aktive Fenstererkennung ist fehlgeschlagen. Prüfe Berechtigungen, aktiviere sie erneut oder starte die App neu.",
     detectionPreviewHelp: "Aktives Fenster wird geprüft. Starte Fokus, damit passende Regeln Hinweise auslösen.",
     detectionFocusHelp: "Überwachung während Fokus. Blockierte Apps oder Keywords lösen einen Hinweis aus.",
-    agentActivityHelp: "Überwacht lokale Codex-, Claude-Code-, OpenCode- und DeepSeek-TUI-Ereignisse und meldet nur Abschluss, Fehler oder Review-Bedarf."
+    agentActivityHelp: "Überwacht lokale Codex-, Claude-Code-, OpenCode-, DeepSeek-TUI- und Hermes-Ereignisse und meldet nur Abschluss, Fehler oder Review-Bedarf."
   },
   ru: {
     title: "Настройки",
@@ -1858,7 +1858,7 @@ const LOCALIZED_SETTINGS = {
     detectionErrorHelp: "Не удалось определить активное окно. Проверь разрешения, включи проверку снова или перезапусти приложение.",
     detectionPreviewHelp: "Предпросмотр активного окна. Запусти фокус, чтобы совпавшие правила вызывали предупреждения.",
     detectionFocusHelp: "Идет проверка во время фокуса. Блокируемые приложения или слова вызовут предупреждение.",
-    agentActivityHelp: "Следит за локальными событиями Codex, Claude Code, OpenCode и DeepSeek TUI и сообщает только о завершении, ошибках или необходимости ревью."
+    agentActivityHelp: "Следит за локальными событиями Codex, Claude Code, OpenCode, DeepSeek TUI и Hermes и сообщает только о завершении, ошибках или необходимости ревью."
   }
 } as const;
 
