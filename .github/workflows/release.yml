@@ -94,9 +94,8 @@ jobs:
           xcrun stapler staple "$app_path"
           xcrun stapler validate "$app_path"
 
-          app_dir="$(dirname "$app_path")"
           env -u APPLE_ID -u APPLE_APP_SPECIFIC_PASSWORD -u APPLE_TEAM_ID \
-            SKIP_NOTARIZE=1 pnpm exec electron-builder --mac dmg zip --${{ matrix.arch }} --prepackaged "$app_dir" --publish never
+            SKIP_NOTARIZE=1 pnpm exec electron-builder --mac dmg zip --${{ matrix.arch }} --prepackaged "$app_path" --publish never
 
           dmg_path="$(find dist -name 'PawPause-*-mac-${{ matrix.arch }}.dmg' -type f -print -quit)"
           if [[ -z "$dmg_path" ]]; then

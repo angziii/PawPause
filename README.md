@@ -85,7 +85,7 @@ PawPause can react when local coding agents are working, waiting for review, fin
 
 ```bash
 mkdir -p ~/.config/opencode/plugins
-curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/opencode/pawpause-agent-hook.js \
+curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.8/integrations/opencode/pawpause-agent-hook.js \
   -o ~/.config/opencode/plugins/pawpause-agent-hook.js
 ```
 
@@ -95,9 +95,9 @@ The hook writes to `~/.local/share/pawpause/agent-events/opencode.jsonl`. Overri
 
 ```bash
 mkdir -p ~/.hermes/plugins/pawpause-agent-hook
-curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/hermes/pawpause-agent-hook/__init__.py \
+curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.8/integrations/hermes/pawpause-agent-hook/__init__.py \
   -o ~/.hermes/plugins/pawpause-agent-hook/__init__.py
-curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/hermes/pawpause-agent-hook/plugin.yaml \
+curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.8/integrations/hermes/pawpause-agent-hook/plugin.yaml \
   -o ~/.hermes/plugins/pawpause-agent-hook/plugin.yaml
 ```
 
@@ -116,12 +116,12 @@ The Hermes hook writes to `~/.local/share/pawpause/agent-events/hermes.jsonl` on
 If you want an agent to connect itself to PawPause, paste this:
 
 ```text
-Please connect this local agent to PawPause v1.0.7.
+Please connect this local agent to PawPause v1.0.8.
 
 - If this is Codex, Claude Code, or DeepSeek TUI, no plugin is needed. Just make sure PawPause is running and Agent activity alerts are enabled.
-- If this is OpenCode, install https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/opencode/pawpause-agent-hook.js into ~/.config/opencode/plugins/pawpause-agent-hook.js.
-- If this is Hermes, create ~/.hermes/plugins/pawpause-agent-hook, download __init__.py and plugin.yaml from https://github.com/angziii/PawPause/tree/v1.0.7/integrations/hermes/pawpause-agent-hook, and enable pawpause-agent-hook in ~/.hermes/config.yaml.
-- If Hermes is running inside WSL while PawPause is running on Windows, use the v1.0.7 Hermes hook. It automatically writes events to the Windows %APPDATA%\PawPause\agent-events\hermes.jsonl path so PawPause can see them.
+- If this is OpenCode, install https://raw.githubusercontent.com/angziii/PawPause/v1.0.8/integrations/opencode/pawpause-agent-hook.js into ~/.config/opencode/plugins/pawpause-agent-hook.js.
+- If this is Hermes, create ~/.hermes/plugins/pawpause-agent-hook, download __init__.py and plugin.yaml from https://github.com/angziii/PawPause/tree/v1.0.8/integrations/hermes/pawpause-agent-hook, and enable pawpause-agent-hook in ~/.hermes/config.yaml.
+- If Hermes is running inside WSL while PawPause is running on Windows, use the v1.0.8 Hermes hook. It automatically writes events to the Windows %APPDATA%\PawPause\agent-events\hermes.jsonl path so PawPause can see them.
 
 After installing a hook, restart the agent.
 ```

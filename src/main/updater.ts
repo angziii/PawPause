@@ -1,7 +1,8 @@
 import electron from "electron";
-import { autoUpdater } from "electron-updater";
+import electronUpdater from "electron-updater";
 
 const { app, dialog } = electron;
+const { autoUpdater } = electronUpdater;
 
 type UpdaterState = "idle" | "checking" | "available" | "downloading" | "downloaded";
 
