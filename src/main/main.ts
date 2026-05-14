@@ -84,6 +84,9 @@ const AMBIENT_POSE_MAX_DELAY_MS = 55_000;
 const AGENT_ACTIVITY_CHECK_INTERVAL_MS = 5000;
 const AGENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
+const BATTERY_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const LOW_BATTERY_ALERT_COOLDOWN_MS = 30 * 60 * 1000;
+const LOW_BATTERY_THRESHOLD_PERCENT = 20;
 
 type AgentSource = "Codex" | "Claude Code" | "OpenCode" | "DeepSeek TUI" | "Hermes";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
@@ -114,6 +117,10 @@ type AgentWindowTarget = {
   appName: string;
   windowTitle: string;
   observedAt: number;
+};
+type BatteryStatus = {
+  percent: number;
+  isCharging: boolean;
 };
 
 app.setName(APP_NAME);
@@ -164,6 +171,7 @@ let ambientPoseStopTimer: NodeJS.Timeout | null = null;
 let agentActivityTimer: NodeJS.Timeout | null = null;
 let agentPoseTimer: NodeJS.Timeout | null = null;
 let petLibraryTimer: NodeJS.Timeout | null = null;
+let batteryMonitorTimer: NodeJS.Timeout | null = null;
 let breakRunVelocity: PetPosition = { x: 0, y: 0 };
 let breakRunFormatter: ((seconds: number) => string) | null = null;
 let nextBreakRunTurnAt = 0;
@@ -189,6 +197,8 @@ let ambientRoamSpeed = 2.4;
 let agentLastNotificationAt = 0;
 let agentLastProgressBubbleAt = 0;
 let agentMonitorPrimed = false;
+let lowBatteryAlertArmed = true;
+let lastLowBatteryAlertAt = 0;
 const agentSeenEventIds = new Set<string>();
 const agentActiveSessions = new Map<string, number>();
 const agentSessionSources = new Map<string, AgentSource>();
@@ -3247,6 +3257,100 @@ function schedulePetLibraryMonitor(): void {
   }, PET_LIBRARY_CHECK_INTERVAL_MS);
 }
 
+function parseMacBatteryStatus(output: string): BatteryStatus | null {
+  const percentMatch = output.match(/(\d+)%/);
+  if (!percentMatch) return null;
+  const percent = Number(percentMatch[1]);
+  if (!Number.isFinite(percent)) return null;
+  const isCharging =
+    /AC Power/i.test(output) || /;\s*(charging|charged|finishing charge)\s*;/i.test(output);
+  return { percent, isCharging };
+}
+
+function parseWindowsBatteryStatus(output: string): BatteryStatus | null {
+  const trimmed = output.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      EstimatedChargeRemaining?: unknown;
+      BatteryStatus?: unknown;
+    };
+    const percent =
+      typeof parsed.EstimatedChargeRemaining === "number"
+        ? parsed.EstimatedChargeRemaining
+        : Number(parsed.EstimatedChargeRemaining);
+    if (!Number.isFinite(percent)) return null;
+    const status = Number(parsed.BatteryStatus);
+    const isCharging = status !== 1;
+    return { percent, isCharging };
+  } catch {
+    return null;
+  }
+}
+
+async function readBatteryStatus(): Promise<BatteryStatus | null> {
+  if (process.platform === "darwin") {
+    const output = await execFileText("/usr/bin/pmset", ["-g", "batt"], 2000).catch(() => "");
+    return parseMacBatteryStatus(output);
+  }
+
+  if (process.platform === "win32") {
+    const output = await execFileText(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-Command",
+        "Get-CimInstance Win32_Battery | Select-Object -First 1 EstimatedChargeRemaining,BatteryStatus | ConvertTo-Json -Compress"
+      ],
+      3000
+    ).catch(() => "");
+    return parseWindowsBatteryStatus(output);
+  }
+
+  return null;
+}
+
+function showLowBatteryAlert(percent: number): void {
+  ensurePetWindowVisible();
+  stopAmbientRoam(false);
+  stopAmbientPose(true);
+  clearAgentPose(true);
+  setPetState("sad");
+  showBubble({
+    id: `low-battery-${Date.now()}`,
+    message: pick(text().bubble.lowBattery)(percent),
+    autoDismissMs: 5000
+  });
+  setTimeout(() => {
+    if (!blockingMode && !focusActive && petState === "sad") {
+      setPetState("idle");
+      scheduleAmbientRoam();
+      scheduleAmbientPose();
+    }
+  }, bubbleSettleMs());
+}
+
+async function checkBatteryNow(): Promise<void> {
+  const status = await readBatteryStatus();
+  if (!status) return;
+  if (status.isCharging || status.percent > LOW_BATTERY_THRESHOLD_PERCENT) {
+    lowBatteryAlertArmed = true;
+    return;
+  }
+
+  const now = Date.now();
+  if (!lowBatteryAlertArmed && now - lastLowBatteryAlertAt < LOW_BATTERY_ALERT_COOLDOWN_MS) return;
+  lowBatteryAlertArmed = false;
+  lastLowBatteryAlertAt = now;
+  showLowBatteryAlert(Math.round(status.percent));
+}
+
+function scheduleBatteryMonitor(): void {
+  if (batteryMonitorTimer) clearInterval(batteryMonitorTimer);
+  batteryMonitorTimer = setInterval(() => void checkBatteryNow(), BATTERY_CHECK_INTERVAL_MS);
+  void checkBatteryNow();
+}
+
 function resumeLongTermState(): void {
   blockingMode = null;
   hideBubble();
@@ -3684,6 +3788,7 @@ app.whenReady().then(() => {
   scheduleReminderTimers();
   scheduleDistractionDetection();
   scheduleAgentActivityMonitor();
+  scheduleBatteryMonitor();
   schedulePetLibraryMonitor();
   scheduleAmbientRoam();
   scheduleAmbientPose();
@@ -3710,6 +3815,7 @@ app.on("before-quit", () => {
     distractionTimer,
     distractionStartupTimer,
     agentActivityTimer,
+    batteryMonitorTimer,
     petLibraryTimer,
     bubbleTimer,
     bubbleResizeSettleTimer,

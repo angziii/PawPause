@@ -72,6 +72,10 @@ const CORE_I18N = {
         "喝饱啦！",
         "汪，水真好喝"
       ],
+      lowBattery: [
+        (percent: number) => `电量只剩 ${percent}% 啦，快给电脑充电`,
+        (percent: number) => `低电量警报：${percent}%，先插上电源吧`
+      ],
       focusStart: [
         (minutes: number) => `好，我帮你看着这 ${minutes} 分钟！`,
         (minutes: number) => `专心${minutes} 分钟，我盯着`
@@ -332,6 +336,10 @@ const CORE_I18N = {
         "All full!",
         "Woof, water's so good"
       ],
+      lowBattery: [
+        (percent: number) => `Battery is down to ${percent}%. Plug in soon.`,
+        (percent: number) => `Low battery alert: ${percent}%. Time to charge.`
+      ],
       focusStart: [
         (minutes: number) => `Okay, I'll keep watch for ${minutes} minutes!`,
         (minutes: number) => `Focus for ${minutes} minutes, I'm watching`
@@ -582,6 +590,7 @@ export const I18N = {
     bubble: {
       breakReminder: ["長く座りすぎです。1分歩きましょう。"],
       breakRun: [(seconds: number) => `あと ${seconds} 秒です。画面から離れてください。`],
+      lowBattery: [(percent: number) => `バッテリー残量は ${percent}% です。充電しましょう。`],
       focusWarning: [(rule: string) => `集中時間です。${rule} は閉じましょう。`],
       agentDone: ["Agent の作業が終わったようです。確認してください。"],
       agentWorking: [(source: string) => `${source} が作業中です`],
@@ -673,6 +682,7 @@ export const I18N = {
     bubble: {
       breakReminder: ["오래 앉아 있었어요. 1분만 걸어봐요."],
       breakRun: [(seconds: number) => `${seconds}초 남았어요. 화면에서 잠깐 떨어져요.`],
+      lowBattery: [(percent: number) => `배터리가 ${percent}% 남았어요. 충전해 주세요.`],
       focusWarning: [(rule: string) => `집중 시간이에요. ${rule}은 닫아주세요.`],
       agentDone: ["Agent 작업이 끝난 것 같아요. 확인해보세요."],
       agentWorking: [(source: string) => `${source} 작업 중이에요`],
@@ -736,6 +746,7 @@ export const I18N = {
     bubble: {
       breakReminder: ["Llevas mucho tiempo sentado. Camina un minuto."],
       breakRun: [(seconds: number) => `Quedan ${seconds}s. Aléjate de la pantalla.`],
+      lowBattery: [(percent: number) => `Batería al ${percent}%. Conecta el cargador.`],
       focusWarning: [(rule: string) => `Es hora de concentrarse. Cierra ${rule}.`],
       agentDone: ["Tu Agent parece haber terminado. Revísalo."],
       agentWorking: [(source: string) => `${source} está trabajando`],
@@ -794,6 +805,7 @@ export const I18N = {
     bubble: {
       breakReminder: ["Tu es assis depuis trop longtemps. Marche une minute."],
       breakRun: [(seconds: number) => `Encore ${seconds} s. Éloigne-toi de l'écran.`],
+      lowBattery: [(percent: number) => `Batterie à ${percent} %. Branche le chargeur.`],
       focusWarning: [(rule: string) => `C'est le moment de se concentrer. Ferme ${rule}.`],
       agentDone: ["Ton Agent semble avoir terminé. Va vérifier."],
       agentWorking: [(source: string) => `${source} travaille`],
@@ -852,6 +864,7 @@ export const I18N = {
     bubble: {
       breakReminder: ["جلست طويلا. امش دقيقة واحدة."],
       breakRun: [(seconds: number) => `بقيت ${seconds} ثانية. ابتعد عن الشاشة.`],
+      lowBattery: [(percent: number) => `البطارية ${percent}%. وصّل الشاحن.`],
       focusWarning: [(rule: string) => `حان وقت التركيز. أغلق ${rule}.`],
       agentDone: ["يبدو أن الوكيل انتهى. تحقق من النتيجة."],
       agentWorking: [(source: string) => `${source} يعمل الآن`],
@@ -910,6 +923,7 @@ export const I18N = {
     bubble: {
       breakReminder: ["Du sitzt schon zu lange. Geh eine Minute."],
       breakRun: [(seconds: number) => `Noch ${seconds} s. Weg vom Bildschirm.`],
+      lowBattery: [(percent: number) => `Akku bei ${percent} %. Bitte lade auf.`],
       focusWarning: [(rule: string) => `Fokuszeit. Bitte ${rule} schließen.`],
       agentDone: ["Dein Agent scheint fertig zu sein. Schau nach."],
       agentWorking: [(source: string) => `${source} arbeitet`],
@@ -968,6 +982,7 @@ export const I18N = {
     bubble: {
       breakReminder: ["Ты слишком долго сидишь. Пройдись минуту."],
       breakRun: [(seconds: number) => `Осталось ${seconds} с. Отойди от экрана.`],
+      lowBattery: [(percent: number) => `Батарея ${percent}%. Подключи зарядку.`],
       focusWarning: [(rule: string) => `Время фокуса. Закрой ${rule}.`],
       agentDone: ["Похоже, Agent закончил работу. Проверь результат."],
       agentWorking: [(source: string) => `${source} работает`],

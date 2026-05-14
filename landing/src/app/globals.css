@@ -110,6 +110,12 @@ a {
   letter-spacing: 0;
 }
 
+.logo-word {
+  font-family: var(--font-pixel);
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
 .mobile-nav {
   display: none;
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const repoUrl = "https://github.com/angziii/PawPause";
 const latestReleaseUrl = `${repoUrl}/releases/latest`;
 const petdexUrl = "https://petdex.crafter.run/zh";
-const latestVersion = "v1.0.3";
+const latestVersion = "v1.0.6";
 const starNudgeDurationMs = 8000;
 const starNudgeDurationSeconds = starNudgeDurationMs / 1000;
+const brandedAgentNames = ["Claude Code", "DeepSeek TUI", "OpenCode", "Hermes", "Codex"];
+const brandedAgentPattern = /(Claude Code|DeepSeek TUI|OpenCode|Hermes|Codex)/g;
 
 const links = [
   { id: "download", href: latestReleaseUrl, primary: true },
@@ -55,17 +57,17 @@ const downloadOptions = [
   {
     title: "macOS Apple Silicon",
     meta: "M1 / M2 / M3 / M4 · DMG",
-    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.3-mac-arm64.dmg`,
+    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.6-mac-arm64.dmg`,
   },
   {
     title: "macOS Intel",
     meta: "Intel Mac · DMG",
-    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.3-mac-x64.dmg`,
+    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.6-mac-x64.dmg`,
   },
   {
     title: "Windows",
     meta: "64-bit · EXE",
-    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.3-win-x64.exe`,
+    href: `${repoUrl}/releases/download/${latestVersion}/PawPause-1.0.6-win-x64.exe`,
   },
   {
     title: "More builds",
@@ -79,12 +81,12 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "语言",
     nav: { download: "下载", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "让电子宠物住进桌面：提醒休息、喝水、保持专注，也能在 Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes 工作时给你动态提示。",
+    hero: "让电子宠物住进桌面：提醒休息、喝水、保持专注、低电量充电提醒，也能在 Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes 工作时给你动态提示。",
     localFirst: "本地优先，不需要账号。",
     petdexLine1: "兼容 Codex 宠物格式，",
     petdexLine2: "可前往 PetDex 社区下载。",
-    bubbles: "v1.0.3 提供已公证的 macOS 包和更稳的气泡体验。",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6 新增低电量提醒、连续陪伴天数、GitHub 风格专注热力图、可调气泡时间和更多跑动方向。",
+    release: "Latest release: v1.0.6",
     downloadTitle: "选择安装包",
     downloadSubtitle: "根据你的系统下载最新版本。",
     downloadAll: "查看全部 Release",
@@ -110,12 +112,12 @@ const copies: Record<Language, LandingCopy> = {
     languageLabel: "Language",
     nav: { download: "Download", github: "GitHub", petdex: "PetDex" },
     eyebrow: "Interactive desktop companion",
-    hero: "PawPause is a pixel desktop companion for macOS and Windows. It helps with breaks, water, focus, and live Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes activity nudges.",
+    hero: "PawPause is a pixel desktop companion for macOS and Windows. It helps with breaks, water, focus, low-battery charging nudges, and live Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes activity.",
     localFirst: "Local first. No account needed.",
     petdexLine1: "Compatible with the Codex pet format.",
     petdexLine2: "Download more from PetDex.",
-    bubbles: "v1.0.3 ships notarized macOS builds and steadier message bubbles.",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6 adds low-battery alerts, companion streak days, a GitHub-style focus heatmap, adjustable bubbles, and richer pet movement.",
+    release: "Latest release: v1.0.6",
     downloadTitle: "Choose an installer",
     downloadSubtitle: "Download the latest build for your system.",
     downloadAll: "View all releases",
@@ -145,8 +147,8 @@ const copies: Record<Language, LandingCopy> = {
     localFirst: "ローカル優先。アカウント不要。",
     petdexLine1: "Codex ペット形式に対応。",
     petdexLine2: "追加キャラクターは PetDex コミュニティから入手できます。",
-    bubbles: "Agent・休憩・水分補給の通知が吹き出しで出ます。",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6 では低電量通知、相棒の日数、集中ヒートマップ、吹き出し時間設定、移動方向の追加に対応しました。",
+    release: "Latest release: v1.0.6",
     downloadTitle: "インストーラを選択",
     downloadSubtitle: "お使いの環境向けの最新版をダウンロード。",
     downloadAll: "すべてのリリースを見る",
@@ -176,8 +178,8 @@ const copies: Record<Language, LandingCopy> = {
     localFirst: "로컬 우선. 계정이 필요 없어요.",
     petdexLine1: "Codex 펫 형식과 호환됩니다.",
     petdexLine2: "PetDex 커뮤니티에서 더 받을 수 있어요.",
-    bubbles: "Agent, 휴식, 물 알림이 말풍선으로 떠요.",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6은 저전력 알림, 함께한 날, 집중 히트맵, 말풍선 시간 설정, 더 많은 이동 방향을 추가합니다.",
+    release: "Latest release: v1.0.6",
     downloadTitle: "설치 파일 선택",
     downloadSubtitle: "시스템에 맞는 최신 버전을 다운로드하세요.",
     downloadAll: "모든 릴리스 보기",
@@ -207,8 +209,8 @@ const copies: Record<Language, LandingCopy> = {
     localFirst: "Primero local. Sin cuenta.",
     petdexLine1: "Compatible con el formato de mascotas de Codex.",
     petdexLine2: "Descarga más en PetDex.",
-    bubbles: "Los avisos de Agent, pausa y agua aparecen en burbujas.",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6 agrega alerta de batería baja, días de compañía, mapa de enfoque, duración de globos y más direcciones.",
+    release: "Latest release: v1.0.6",
     downloadTitle: "Elige un instalador",
     downloadSubtitle: "Descarga la version mas reciente para tu sistema.",
     downloadAll: "Ver todas las versiones",
@@ -238,8 +240,8 @@ const copies: Record<Language, LandingCopy> = {
     localFirst: "Local d'abord. Aucun compte requis.",
     petdexLine1: "Compatible avec le format de compagnon Codex.",
     petdexLine2: "Télécharge d'autres personnages sur PetDex.",
-    bubbles: "Les alertes Agent, pause et eau apparaissent en bulles.",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6 ajoute l'alerte batterie faible, les jours ensemble, la carte de concentration, la durée des bulles et plus de directions.",
+    release: "Latest release: v1.0.6",
     downloadTitle: "Choisir un installateur",
     downloadSubtitle: "Telecharge la derniere version pour ton systeme.",
     downloadAll: "Voir toutes les versions",
@@ -269,8 +271,8 @@ const copies: Record<Language, LandingCopy> = {
     localFirst: "Lokal zuerst. Kein Konto nötig.",
     petdexLine1: "Kompatibel mit dem Codex-Pet-Format.",
     petdexLine2: "Weitere Figuren gibt es bei PetDex.",
-    bubbles: "Agent-, Pausen- und Wasserhinweise erscheinen als Blasen.",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6 bringt Akkuwarnungen, Begleittage, Fokus-Heatmap, einstellbare Blasen und mehr Bewegungsrichtungen.",
+    release: "Latest release: v1.0.6",
     downloadTitle: "Installer wahlen",
     downloadSubtitle: "Lade die neueste Version fur dein System herunter.",
     downloadAll: "Alle Versionen ansehen",
@@ -300,8 +302,8 @@ const copies: Record<Language, LandingCopy> = {
     localFirst: "Локально в первую очередь. Аккаунт не нужен.",
     petdexLine1: "Совместим с форматом питомцев Codex.",
     petdexLine2: "Больше персонажей есть в PetDex.",
-    bubbles: "Agent, паузы и вода появляются в пузырях.",
-    release: "Latest release: v1.0.3",
+    bubbles: "v1.0.6 добавляет предупреждение о батарее, дни вместе, карту фокуса, время подсказок и новые направления.",
+    release: "Latest release: v1.0.6",
     downloadTitle: "Выберите установщик",
     downloadSubtitle: "Скачайте последнюю версию для вашей системы.",
     downloadAll: "Все релизы",
@@ -332,8 +334,8 @@ const copies: Record<Language, LandingCopy> = {
     localFirst: "محلي أولا. لا تحتاج حسابا.",
     petdexLine1: "متوافق مع تنسيق حيوانات Codex.",
     petdexLine2: "حمّل المزيد من مجتمع PetDex.",
-    bubbles: "تظهر تنبيهات Agent والاستراحة والماء كفقاعات.",
-    release: "Latest release: v1.0.3",
+    bubbles: "يضيف v1.0.6 تنبيه البطارية وأيام الرفقة وخريطة التركيز ومدة الفقاعات واتجاهات حركة أكثر.",
+    release: "Latest release: v1.0.6",
     downloadTitle: "اختر المثبت",
     downloadSubtitle: "حمّل أحدث نسخة لنظامك.",
     downloadAll: "عرض كل الإصدارات",
@@ -358,6 +360,18 @@ const copies: Record<Language, LandingCopy> = {
 };
 
 const PROMPT_COUNT = copies["zh-CN"].prompts.length;
+
+function renderBrandedText(text: string): ReactNode[] {
+  return text.split(brandedAgentPattern).map((part, index) =>
+    brandedAgentNames.includes(part) ? (
+      <span className="logo-word" key={`${part}-${index}`}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
 
 function resolveLanguage(value: string | undefined): Language {
   const normalized = value?.toLowerCase() ?? "";
@@ -722,7 +736,7 @@ export default function PetChaseLanding() {
 
         <div className="hero-copy">
           <h1>PawPause</h1>
-          <p className="hero-text">{copy.hero}</p>
+          <p className="hero-text">{renderBrandedText(copy.hero)}</p>
         </div>
 
         <div className="pet-grid" aria-label="Interactive PawPause pets">
@@ -737,7 +751,7 @@ export default function PetChaseLanding() {
                 type="button"
               >
                 <span className={isActive ? "pet-bubble is-visible" : "pet-bubble"}>
-                  {copy.prompts[activePet?.promptIndex ?? (index * 2) % copy.prompts.length]}
+                  {renderBrandedText(copy.prompts[activePet?.promptIndex ?? (index * 2) % copy.prompts.length])}
                 </span>
                 <span
                   className="pet-sprite"
