@@ -84,6 +84,9 @@ const AMBIENT_POSE_MAX_DELAY_MS = 55_000;
 const AGENT_ACTIVITY_CHECK_INTERVAL_MS = 5000;
 const AGENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const PET_LIBRARY_CHECK_INTERVAL_MS = 3000;
+const BATTERY_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const LOW_BATTERY_ALERT_COOLDOWN_MS = 30 * 60 * 1000;
+const LOW_BATTERY_THRESHOLD_PERCENT = 20;
 
 type AgentSource = "Codex" | "Claude Code" | "OpenCode" | "DeepSeek TUI" | "Hermes";
 type AgentEventKind = "complete" | "failed" | "needs-review" | "working";
@@ -114,6 +117,10 @@ type AgentWindowTarget = {
   appName: string;
   windowTitle: string;
   observedAt: number;
+};
+type BatteryStatus = {
+  percent: number;
+  isCharging: boolean;
 };
 
 app.setName(APP_NAME);
@@ -164,6 +171,7 @@ let ambientPoseStopTimer: NodeJS.Timeout | null = null;
 let agentActivityTimer: NodeJS.Timeout | null = null;
 let agentPoseTimer: NodeJS.Timeout | null = null;
 let petLibraryTimer: NodeJS.Timeout | null = null;
+let batteryMonitorTimer: NodeJS.Timeout | null = null;
 let breakRunVelocity: PetPosition = { x: 0, y: 0 };
 let breakRunFormatter: ((seconds: number) => string) | null = null;
 let nextBreakRunTurnAt = 0;
@@ -176,11 +184,21 @@ let petLayout: PetLayout = {
   bubbleLeftX: 0,
   bubbleArrowX: 0
 };
-let ambientRoamDirection: "left" | "right" = "right";
+let ambientRoamDirection:
+  | "left"
+  | "right"
+  | "up"
+  | "down"
+  | "upLeft"
+  | "upRight"
+  | "downLeft"
+  | "downRight" = "right";
 let ambientRoamSpeed = 2.4;
 let agentLastNotificationAt = 0;
 let agentLastProgressBubbleAt = 0;
 let agentMonitorPrimed = false;
+let lowBatteryAlertArmed = true;
+let lastLowBatteryAlertAt = 0;
 const agentSeenEventIds = new Set<string>();
 const agentActiveSessions = new Map<string, number>();
 const agentSessionSources = new Map<string, AgentSource>();
@@ -202,8 +220,18 @@ function normalizeNumber(value: unknown, fallback: number, min: number, max: num
   return Math.min(max, Math.max(min, value));
 }
 
+function normalizeBubbleDurationSeconds(value: unknown): number {
+  const normalized = normalizeNumber(value, DEFAULT_SETTINGS.petBubbleDurationSeconds, 0.1, 10);
+  return Math.round(normalized * 10) / 10;
+}
+
 function normalizeRoamDirection(value: unknown): PetRoamDirection {
-  return value === "left" || value === "right" || value === "both"
+  return value === "left" ||
+    value === "right" ||
+    value === "both" ||
+    value === "vertical" ||
+    value === "diagonal" ||
+    value === "all"
     ? value
     : DEFAULT_SETTINGS.petRoamDirection;
 }
@@ -300,6 +328,7 @@ function getSettings(): Settings {
       1,
       12
     ),
+    petBubbleDurationSeconds: normalizeBubbleDurationSeconds(stored.petBubbleDurationSeconds),
     lyricsModeEnabled:
       typeof stored.lyricsModeEnabled === "boolean"
         ? stored.lyricsModeEnabled
@@ -344,6 +373,7 @@ function setSettings(next: Settings): void {
     petRoamFrequencySeconds: normalizeNumber(next.petRoamFrequencySeconds, 18, 5, 180),
     petRoamDurationSeconds: normalizeNumber(next.petRoamDurationSeconds, 5, 1, 30),
     petIdleMotionSeconds: normalizeNumber(next.petIdleMotionSeconds, 3.2, 1, 12),
+    petBubbleDurationSeconds: normalizeBubbleDurationSeconds(next.petBubbleDurationSeconds),
     lyricsModeEnabled: Boolean(next.lyricsModeEnabled),
     screenBlockDurationSeconds: normalizeNumber(next.screenBlockDurationSeconds, 120, 15, 600),
     screenBlockCoverageRatio: normalizeNumber(next.screenBlockCoverageRatio, 0.4, 0.35, 1),
@@ -561,6 +591,18 @@ function updatePetWindowMouseEvents(lyricsModeEnabled = getSettings().lyricsMode
   petWindow.setIgnoreMouseEvents(false);
 }
 
+function bubbleDisplayMs(): number {
+  return Math.round(getSettings().petBubbleDurationSeconds * 1000);
+}
+
+function bubbleSettleMs(): number {
+  return bubbleDisplayMs() + 100;
+}
+
+function bubbleAutoDismissMs(bubble: SpeechBubble): number | null {
+  return bubble.autoDismissMs ? bubbleDisplayMs() : null;
+}
+
 function showBubble(bubble: SpeechBubble): void {
   if (bubbleTimer) {
     clearTimeout(bubbleTimer);
@@ -578,8 +620,9 @@ function showBubble(bubble: SpeechBubble): void {
     bubbleResizeSettleTimer = null;
     if (renderToken !== bubbleRenderToken || currentBubble?.id !== bubble.id) return;
     sendToPet("pet:show-bubble", bubble);
-    if (bubble.autoDismissMs) {
-      bubbleTimer = setTimeout(() => hideBubble(), bubble.autoDismissMs);
+    const autoDismissMs = bubbleAutoDismissMs(bubble);
+    if (autoDismissMs) {
+      bubbleTimer = setTimeout(() => hideBubble(), autoDismissMs);
     }
   }, BUBBLE_RESIZE_SETTLE_MS);
 }
@@ -1064,6 +1107,54 @@ function scheduleAmbientRoam(delayMs?: number): void {
   ambientRoamTimer = setTimeout(startAmbientRoam, delayMs ?? Math.max(1000, baseDelay + jitter));
 }
 
+function randomAmbientDirection(direction: PetRoamDirection): typeof ambientRoamDirection {
+  if (direction === "left" || direction === "right") return direction;
+  const directions =
+    direction === "vertical"
+      ? (["up", "down"] as const)
+      : direction === "diagonal"
+        ? (["upLeft", "upRight", "downLeft", "downRight"] as const)
+      : direction === "all"
+        ? (["left", "right", "up", "down"] as const)
+        : (["left", "right"] as const);
+  return pick([...directions]);
+}
+
+function ambientDirectionX(direction: typeof ambientRoamDirection): -1 | 0 | 1 {
+  if (direction === "left" || direction === "upLeft" || direction === "downLeft") return -1;
+  if (direction === "right" || direction === "upRight" || direction === "downRight") return 1;
+  return 0;
+}
+
+function ambientDirectionY(direction: typeof ambientRoamDirection): -1 | 0 | 1 {
+  if (direction === "up" || direction === "upLeft" || direction === "upRight") return -1;
+  if (direction === "down" || direction === "downLeft" || direction === "downRight") return 1;
+  return 0;
+}
+
+function ambientDirectionFromVector(x: -1 | 0 | 1, y: -1 | 0 | 1): typeof ambientRoamDirection {
+  if (x < 0 && y < 0) return "upLeft";
+  if (x > 0 && y < 0) return "upRight";
+  if (x < 0 && y > 0) return "downLeft";
+  if (x > 0 && y > 0) return "downRight";
+  if (x < 0) return "left";
+  if (x > 0) return "right";
+  if (y < 0) return "up";
+  return "down";
+}
+
+function setAmbientRoamDirection(direction: typeof ambientRoamDirection): void {
+  ambientRoamDirection = direction;
+  const x = ambientDirectionX(direction);
+  if (x < 0) setPetFacing("left");
+  if (x > 0) setPetFacing("right");
+  setPetState(
+    x < 0 || (x === 0 && petFacing === "left")
+      ? "runningLeft"
+      : "runningRight"
+  );
+}
+
 function startAmbientRoam(): void {
   if (!canAmbientRoam() || !petWindow || petWindow.isDestroyed()) {
     scheduleAmbientRoam();
@@ -1072,15 +1163,8 @@ function startAmbientRoam(): void {
 
   stopAmbientPose(false);
   const settings = getSettings();
-  ambientRoamDirection =
-    settings.petRoamDirection === "both"
-      ? Math.random() > 0.5
-        ? "right"
-        : "left"
-      : settings.petRoamDirection;
+  setAmbientRoamDirection(randomAmbientDirection(settings.petRoamDirection));
   ambientRoamSpeed = 1.8 + Math.random() * 1.6;
-  setPetState(ambientRoamDirection === "right" ? "runningRight" : "runningLeft");
-  setPetFacing(ambientRoamDirection);
 
   if (ambientRoamMoveTimer) clearInterval(ambientRoamMoveTimer);
   if (ambientRoamStopTimer) clearTimeout(ambientRoamStopTimer);
@@ -1103,27 +1187,50 @@ function movePetForAmbientRoam(): void {
     x: bounds.x + Math.round(bounds.width / 2),
     y: bounds.y + Math.round(bounds.height / 2)
   }).workArea;
-  const delta = ambientRoamDirection === "right" ? ambientRoamSpeed : -ambientRoamSpeed;
   const minX = workArea.x + 4;
   const maxX = workArea.x + workArea.width - bounds.width - 4;
-  let nextX = bounds.x + delta;
+  const minY = workArea.y + 4;
+  const maxY = workArea.y + workArea.height - bounds.height - 4;
+  let directionX = ambientDirectionX(ambientRoamDirection);
+  let directionY = ambientDirectionY(ambientRoamDirection);
+  const isDiagonal = directionX !== 0 && directionY !== 0;
+  const step = isDiagonal ? ambientRoamSpeed / Math.SQRT2 : ambientRoamSpeed;
+  const horizontalDelta = directionX * step;
+  const verticalDelta = directionY * step;
+  let nextX = bounds.x + horizontalDelta;
+  let nextY = bounds.y + verticalDelta;
 
-  if (nextX >= maxX) {
-    nextX = maxX;
-    ambientRoamDirection = "left";
-    setPetState("runningLeft");
-    setPetFacing("left");
+  if (horizontalDelta !== 0) {
+    if (nextX >= maxX) {
+      nextX = maxX;
+      directionX = -1;
+    }
+    if (nextX <= minX) {
+      nextX = minX;
+      directionX = 1;
+    }
+  } else {
+    nextX = clampNumber(nextX, minX, maxX);
   }
-  if (nextX <= minX) {
-    nextX = minX;
-    ambientRoamDirection = "right";
-    setPetState("runningRight");
-    setPetFacing("right");
+  if (verticalDelta !== 0) {
+    if (nextY >= maxY) {
+      nextY = maxY;
+      directionY = -1;
+    }
+    if (nextY <= minY) {
+      nextY = minY;
+      directionY = 1;
+    }
+  } else {
+    nextY = clampNumber(nextY, minY, maxY);
   }
+  const nextDirection = ambientDirectionFromVector(directionX, directionY);
+  if (nextDirection !== ambientRoamDirection) setAmbientRoamDirection(nextDirection);
 
   petWindow.setBounds({
     ...bounds,
-    x: Math.round(nextX)
+    x: Math.round(nextX),
+    y: Math.round(nextY)
   });
 }
 
@@ -1153,10 +1260,8 @@ function startClickRunReaction(direction: "left" | "right"): void {
   stopAmbientRoam(false);
   stopAmbientPose(true);
   clearAgentPose(true);
-  ambientRoamDirection = direction;
+  setAmbientRoamDirection(direction);
   ambientRoamSpeed = 4.2 + Math.random() * 2.4;
-  setPetState(direction === "right" ? "runningRight" : "runningLeft");
-  setPetFacing(direction);
   if (ambientRoamMoveTimer) clearInterval(ambientRoamMoveTimer);
   if (ambientRoamStopTimer) clearTimeout(ambientRoamStopTimer);
   ambientRoamMoveTimer = setInterval(movePetForAmbientRoam, AMBIENT_ROAM_TICK_MS);
@@ -1280,7 +1385,7 @@ function finishBreakRun(): void {
       scheduleReminderTimers();
       scheduleAmbientPose();
     }
-  }, 2300);
+  }, bubbleSettleMs());
   publishSnapshot();
 }
 
@@ -2998,7 +3103,7 @@ function notifyAgentEvent(event: AgentMonitorEvent): boolean {
   const bubbleId = `agent-${event.kind}-${event.timestampMs}`;
   playAgentCompletionSound(event);
   setPetState(event.state);
-  const displayMs = event.kind === "failed" ? 5200 : 3800;
+  const displayMs = bubbleDisplayMs();
   showBubble({
     id: bubbleId,
     message: agentEventMessage(event),
@@ -3152,6 +3257,100 @@ function schedulePetLibraryMonitor(): void {
   }, PET_LIBRARY_CHECK_INTERVAL_MS);
 }
 
+function parseMacBatteryStatus(output: string): BatteryStatus | null {
+  const percentMatch = output.match(/(\d+)%/);
+  if (!percentMatch) return null;
+  const percent = Number(percentMatch[1]);
+  if (!Number.isFinite(percent)) return null;
+  const isCharging =
+    /AC Power/i.test(output) || /;\s*(charging|charged|finishing charge)\s*;/i.test(output);
+  return { percent, isCharging };
+}
+
+function parseWindowsBatteryStatus(output: string): BatteryStatus | null {
+  const trimmed = output.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      EstimatedChargeRemaining?: unknown;
+      BatteryStatus?: unknown;
+    };
+    const percent =
+      typeof parsed.EstimatedChargeRemaining === "number"
+        ? parsed.EstimatedChargeRemaining
+        : Number(parsed.EstimatedChargeRemaining);
+    if (!Number.isFinite(percent)) return null;
+    const status = Number(parsed.BatteryStatus);
+    const isCharging = status !== 1;
+    return { percent, isCharging };
+  } catch {
+    return null;
+  }
+}
+
+async function readBatteryStatus(): Promise<BatteryStatus | null> {
+  if (process.platform === "darwin") {
+    const output = await execFileText("/usr/bin/pmset", ["-g", "batt"], 2000).catch(() => "");
+    return parseMacBatteryStatus(output);
+  }
+
+  if (process.platform === "win32") {
+    const output = await execFileText(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-Command",
+        "Get-CimInstance Win32_Battery | Select-Object -First 1 EstimatedChargeRemaining,BatteryStatus | ConvertTo-Json -Compress"
+      ],
+      3000
+    ).catch(() => "");
+    return parseWindowsBatteryStatus(output);
+  }
+
+  return null;
+}
+
+function showLowBatteryAlert(percent: number): void {
+  ensurePetWindowVisible();
+  stopAmbientRoam(false);
+  stopAmbientPose(true);
+  clearAgentPose(true);
+  setPetState("sad");
+  showBubble({
+    id: `low-battery-${Date.now()}`,
+    message: pick(text().bubble.lowBattery)(percent),
+    autoDismissMs: 5000
+  });
+  setTimeout(() => {
+    if (!blockingMode && !focusActive && petState === "sad") {
+      setPetState("idle");
+      scheduleAmbientRoam();
+      scheduleAmbientPose();
+    }
+  }, bubbleSettleMs());
+}
+
+async function checkBatteryNow(): Promise<void> {
+  const status = await readBatteryStatus();
+  if (!status) return;
+  if (status.isCharging || status.percent > LOW_BATTERY_THRESHOLD_PERCENT) {
+    lowBatteryAlertArmed = true;
+    return;
+  }
+
+  const now = Date.now();
+  if (!lowBatteryAlertArmed && now - lastLowBatteryAlertAt < LOW_BATTERY_ALERT_COOLDOWN_MS) return;
+  lowBatteryAlertArmed = false;
+  lastLowBatteryAlertAt = now;
+  showLowBatteryAlert(Math.round(status.percent));
+}
+
+function scheduleBatteryMonitor(): void {
+  if (batteryMonitorTimer) clearInterval(batteryMonitorTimer);
+  batteryMonitorTimer = setInterval(() => void checkBatteryNow(), BATTERY_CHECK_INTERVAL_MS);
+  void checkBatteryNow();
+}
+
 function resumeLongTermState(): void {
   blockingMode = null;
   hideBubble();
@@ -3183,7 +3382,7 @@ function happyFeedback(message: string | null = pick(text().bubble.woof), after?
       scheduleAmbientPose();
     }
     after?.();
-  }, 1900);
+  }, message ? bubbleSettleMs() : 1900);
 }
 
 function simplePetReaction(state: PetState, durationMs: number, message: string | null = null): void {
@@ -3303,6 +3502,7 @@ function triggerFocusWarning(rule?: string): void {
   setPetState("focusAlert");
   sendToAll("app:snapshot", snapshot());
   const labels = text();
+  const warningMs = bubbleDisplayMs();
   showBubble({
     id: "focus-warning",
     message: pick(labels.bubble.focusWarning)(rule ?? "?"),
@@ -3313,7 +3513,7 @@ function triggerFocusWarning(rule?: string): void {
     autoDismissMs: 5000
   });
   if (focusWarningTimer) clearTimeout(focusWarningTimer);
-  focusWarningTimer = setTimeout(finishFocusWarning, 5000);
+  focusWarningTimer = setTimeout(finishFocusWarning, warningMs);
 }
 
 function startFocusMode(): void {
@@ -3383,7 +3583,7 @@ function stopFocusMode(completed: boolean): void {
       scheduleAmbientRoam();
       scheduleAmbientPose();
     }
-  }, 2900);
+  }, bubbleSettleMs());
   updateTrayMenu();
 }
 
@@ -3446,7 +3646,7 @@ function handleBubbleAction(actionId: string): void {
     sendToAll("app:snapshot", snapshot());
     setPetState("sad");
     showBubble({ id: "break-muted", message: pick(text().bubble.breakIgnore), autoDismissMs: 2600 });
-    setTimeout(resumeLongTermState, 2700);
+    setTimeout(resumeLongTermState, bubbleSettleMs());
     return;
   }
   if (actionId === "hydration:done") {
@@ -3463,7 +3663,7 @@ function handleBubbleAction(actionId: string): void {
         hideBubble();
         setPetState(focusActive ? "focusGuard" : "idle");
         scheduleReminderTimers();
-      }, 1900);
+      }, bubbleSettleMs());
     }, 2400);
     return;
   }
@@ -3487,7 +3687,7 @@ function handleBubbleAction(actionId: string): void {
     showBubble({ id: "focus-back", message: pick(text().bubble.focusBack), autoDismissMs: 1800 });
     setTimeout(() => {
       if (focusActive && !blockingMode) hideBubble();
-    }, 1900);
+    }, bubbleSettleMs());
     return;
   }
   if (actionId === "focus:end") {
@@ -3588,6 +3788,7 @@ app.whenReady().then(() => {
   scheduleReminderTimers();
   scheduleDistractionDetection();
   scheduleAgentActivityMonitor();
+  scheduleBatteryMonitor();
   schedulePetLibraryMonitor();
   scheduleAmbientRoam();
   scheduleAmbientPose();
@@ -3614,6 +3815,7 @@ app.on("before-quit", () => {
     distractionTimer,
     distractionStartupTimer,
     agentActivityTimer,
+    batteryMonitorTimer,
     petLibraryTimer,
     bubbleTimer,
     bubbleResizeSettleTimer,

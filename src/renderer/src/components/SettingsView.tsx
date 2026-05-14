@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, JSX, ReactNode } from "react";
 import { i18n, LANGUAGE_OPTIONS, resolveLanguage } from "../../../shared/i18n";
 import { allPets } from "../../../shared/bundledPets";
@@ -20,7 +20,24 @@ type StatsMetric = "breaksTaken" | "watersLogged" | "focusMinutes" | "focusWarni
 type StatsTrendPoint = TodayStats & {
   label: string;
 };
+type FocusHeatmapDay = {
+  date: string;
+  tooltip: string;
+  level: number;
+};
+
+type FocusHeatmapWeek = {
+  startDate: Date;
+  days: FocusHeatmapDay[];
+};
+
+type MonthMarker = {
+  key: string;
+  label: string;
+  column: number;
+};
 const PETDEX_URL = "https://petdex.crafter.run/";
+const HEATMAP_WEEK_COUNT = 53;
 
 function Row({
   label,
@@ -69,24 +86,31 @@ function NumberControl({
   value,
   min,
   max,
+  step = 1,
+  precision = 0,
   unit,
   onChange
 }: {
   value: number;
   min: number;
   max: number;
+  step?: number;
+  precision?: number;
   unit: string;
   onChange: (next: number) => void;
 }): JSX.Element {
-  const [draftValue, setDraftValue] = useState(String(value));
+  const formatValue = (next: number): string => next.toFixed(precision);
+  const [draftValue, setDraftValue] = useState(formatValue(value));
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    if (!isEditing) setDraftValue(String(value));
-  }, [isEditing, value]);
+    if (!isEditing) setDraftValue(formatValue(value));
+  }, [isEditing, precision, value]);
 
   function clamp(next: number): number {
-    return Math.min(max, Math.max(min, next));
+    const clamped = Math.min(max, Math.max(min, next));
+    const factor = 10 ** precision;
+    return Math.round(clamped * factor) / factor;
   }
 
   function commit(raw: string): void {
@@ -103,7 +127,7 @@ function NumberControl({
     }
 
     const normalized = clamp(next);
-    setDraftValue(String(normalized));
+    setDraftValue(formatValue(normalized));
     if (normalized !== value) onChange(normalized);
   }
 
@@ -115,8 +139,8 @@ function NumberControl({
         aria-label="−"
         disabled={value <= min}
         onClick={() => {
-          const next = clamp(value - 1);
-          setDraftValue(String(next));
+          const next = clamp(value - step);
+          setDraftValue(formatValue(next));
           onChange(next);
         }}
       >
@@ -137,7 +161,7 @@ function NumberControl({
             event.currentTarget.blur();
           }
           if (event.key === "Escape") {
-            setDraftValue(String(value));
+            setDraftValue(formatValue(value));
             event.currentTarget.blur();
           }
         }}
@@ -149,8 +173,8 @@ function NumberControl({
         aria-label="+"
         disabled={value >= max}
         onClick={() => {
-          const next = clamp(value + 1);
-          setDraftValue(String(next));
+          const next = clamp(value + step);
+          setDraftValue(formatValue(next));
           onChange(next);
         }}
       >
@@ -307,10 +331,51 @@ function addDays(date: Date, amount: number): Date {
   return next;
 }
 
+function startOfWeek(date: Date): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() - next.getDay());
+  return next;
+}
+
+function daysBetweenInclusive(start: Date, end: Date): number {
+  const startDate = dateFromKey(dateKey(start));
+  const endDate = dateFromKey(dateKey(end));
+  return Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1);
+}
+
+function focusLevel(minutes: number): number {
+  if (minutes <= 0) return 0;
+  if (minutes < 25) return 1;
+  if (minutes < 60) return 2;
+  if (minutes < 120) return 3;
+  return 4;
+}
+
 function formatTrendLabel(date: Date, language: Settings["language"]): string {
   return new Intl.DateTimeFormat(localeFor(language), {
     month: "numeric",
     day: "numeric"
+  }).format(date);
+}
+
+function formatHeatmapMonth(date: Date, language: Settings["language"]): string {
+  return new Intl.DateTimeFormat(localeFor(language), {
+    month: "short"
+  }).format(date);
+}
+
+function formatHeatmapDate(date: Date, language: Settings["language"]): string {
+  return new Intl.DateTimeFormat(localeFor(language), {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
+function formatWeekdayLabel(dayIndex: number, language: Settings["language"]): string {
+  const date = new Date(2026, 0, 4 + dayIndex);
+  return new Intl.DateTimeFormat(localeFor(language), {
+    weekday: "short"
   }).format(date);
 }
 
@@ -438,6 +503,159 @@ function emptyStats(date: string): TodayStats {
   };
 }
 
+function buildFocusHeatmap(
+  statsByDate: Record<string, TodayStats>,
+  currentDate: string,
+  language: Settings["language"],
+  labels: SettingsCopy
+): FocusHeatmapWeek[] {
+  const end = dateFromKey(currentDate);
+  const start = addDays(startOfWeek(end), -(HEATMAP_WEEK_COUNT - 1) * 7);
+
+  return Array.from({ length: HEATMAP_WEEK_COUNT }, (_, weekIndex) => {
+    const weekStart = addDays(start, weekIndex * 7);
+    return {
+      startDate: weekStart,
+      days: Array.from({ length: 7 }, (_, dayIndex) => {
+        const date = addDays(weekStart, dayIndex);
+        const key = dateKey(date);
+        const focusMinutes = statsByDate[key]?.focusMinutes ?? 0;
+        const dateLabel = formatHeatmapDate(date, language);
+        return {
+          date: key,
+          tooltip: labels.focusHeatmapTooltip(focusMinutes, dateLabel),
+          level: focusLevel(focusMinutes)
+        };
+      })
+    };
+  });
+}
+
+function buildMonthMarkers(weeks: FocusHeatmapWeek[], language: Settings["language"]): MonthMarker[] {
+  return weeks.flatMap((week, index) => {
+    const previous = weeks[index - 1]?.startDate;
+    if (previous && previous.getMonth() === week.startDate.getMonth()) return [];
+    return [
+      {
+        key: dateKey(week.startDate),
+        label: formatHeatmapMonth(week.startDate, language),
+        column: index + 1
+      }
+    ];
+  });
+}
+
+function StatsCompanionship({
+  days,
+  weeks,
+  monthMarkers,
+  labels,
+  language
+}: {
+  days: number;
+  weeks: FocusHeatmapWeek[];
+  monthMarkers: MonthMarker[];
+  labels: SettingsCopy;
+  language: Settings["language"];
+}): JSX.Element {
+  const weekdayRows = [
+    { day: 1, label: formatWeekdayLabel(1, language) },
+    { day: 3, label: formatWeekdayLabel(3, language) },
+    { day: 5, label: formatWeekdayLabel(5, language) }
+  ];
+  const heatmapStyle = { "--week-count": weeks.length } as CSSProperties;
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const tooltipTimer = useRef<number | null>(null);
+
+  function showTooltip(text: string, x: number, y: number): void {
+    const safeX = Math.min(Math.max(x, 96), window.innerWidth - 96);
+    setTooltip({ text, x: safeX, y });
+  }
+
+  function scheduleTooltip(text: string, element: HTMLElement): void {
+    if (tooltipTimer.current) window.clearTimeout(tooltipTimer.current);
+    const rect = element.getBoundingClientRect();
+    tooltipTimer.current = window.setTimeout(() => {
+      showTooltip(text, rect.left + rect.width / 2, rect.top);
+      tooltipTimer.current = null;
+    }, 140);
+  }
+
+  function hideTooltip(): void {
+    if (tooltipTimer.current) {
+      window.clearTimeout(tooltipTimer.current);
+      tooltipTimer.current = null;
+    }
+    setTooltip(null);
+  }
+
+  return (
+    <section className="companion-stats" aria-label={labels.companionDays}>
+      <div className="companion-stats__summary">
+        <span>{labels.companionDays}</span>
+        <strong>
+          {days}
+          <small>{labels.dayUnit}</small>
+        </strong>
+      </div>
+      <div className="focus-heatmap" aria-label={labels.focusHeatmap}>
+        <div className="focus-heatmap__head">
+          <span>{labels.focusHeatmap}</span>
+          <div className="focus-heatmap__legend" aria-hidden="true">
+            <span>{labels.heatmapLess}</span>
+            {[0, 1, 2, 3, 4].map((level) => (
+              <i key={level} className={`focus-heatmap__legend-cell heat-${level}`} />
+            ))}
+            <span>{labels.heatmapMore}</span>
+          </div>
+        </div>
+        <div className="focus-heatmap__scroller">
+          <div className="focus-heatmap__canvas" style={heatmapStyle}>
+            <div className="focus-heatmap__months" aria-hidden="true">
+              {monthMarkers.map((marker) => (
+                <span key={marker.key} style={{ gridColumn: marker.column }}>
+                  {marker.label}
+                </span>
+              ))}
+            </div>
+            <div className="focus-heatmap__body">
+              <div className="focus-heatmap__weekdays" aria-hidden="true">
+                {weekdayRows.map((row) => (
+                  <span key={row.day} style={{ gridRow: row.day + 1 }}>
+                    {row.label}
+                  </span>
+                ))}
+              </div>
+              <div className="focus-heatmap__grid" role="img" aria-label={labels.focusHeatmap}>
+                {weeks.flatMap((week) =>
+                  week.days.map((day) => (
+                    <span
+                      key={day.date}
+                      className={`focus-heatmap__day heat-${day.level}`}
+                      aria-label={day.tooltip}
+                      onMouseEnter={(event) => scheduleTooltip(day.tooltip, event.currentTarget)}
+                      onMouseLeave={hideTooltip}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        {tooltip ? (
+          <div
+            className="focus-heatmap__tooltip"
+            style={{ left: tooltip.x, top: tooltip.y }}
+            role="tooltip"
+          >
+            {tooltip.text}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export function SettingsView(): JSX.Element {
   const snapshot = useSnapshot();
   const { settings, stats } = snapshot;
@@ -469,10 +687,20 @@ export function SettingsView(): JSX.Element {
     () => buildTrendPoints(allStatsByDate, currentDate, statsRange, language),
     [allStatsByDate, currentDate, language, statsRange]
   );
+  const firstStatsDate = Object.keys(allStatsByDate).sort()[0] ?? currentDate;
+  const companionDays = daysBetweenInclusive(dateFromKey(firstStatsDate), dateFromKey(currentDate));
+  const focusHeatmapWeeks = useMemo(
+    () => buildFocusHeatmap(allStatsByDate, currentDate, language, labels),
+    [allStatsByDate, currentDate, labels, language]
+  );
+  const monthMarkers = useMemo(
+    () => buildMonthMarkers(focusHeatmapWeeks, language),
+    [focusHeatmapWeeks, language]
+  );
   useEffect(() => {
     setDraft(settings);
     setSettingsDirty(false);
-  }, [savedSettingsKey, settings]);
+  }, [savedSettingsKey]);
 
   useEffect(() => {
     if (!settingsDirty) return;
@@ -572,6 +800,13 @@ export function SettingsView(): JSX.Element {
               unit={labels.countUnit}
             />
           </div>
+          <StatsCompanionship
+            days={companionDays}
+            weeks={focusHeatmapWeeks}
+            monthMarkers={monthMarkers}
+            labels={labels}
+            language={language}
+          />
         </section>
       ) : null}
 
@@ -669,6 +904,20 @@ export function SettingsView(): JSX.Element {
                 />
               }
             />
+            <Row
+              label={labels.petBubbleDuration}
+              control={
+                <NumberControl
+                  value={draft.petBubbleDurationSeconds}
+                  min={0.1}
+                  max={10}
+                  step={0.1}
+                  precision={1}
+                  unit={labels.secondUnit}
+                  onChange={(petBubbleDurationSeconds) => updateDraft({ petBubbleDurationSeconds })}
+                />
+              }
+            />
         <div className="pref-block">
             <span className="pref-block__label">{labels.petMotion}</span>
             <Row
@@ -688,6 +937,9 @@ export function SettingsView(): JSX.Element {
                   value={draft.petRoamDirection}
                   options={[
                     { value: "both", label: labels.petRoamDirectionBoth },
+                    { value: "vertical", label: labels.petRoamDirectionVertical },
+                    { value: "diagonal", label: labels.petRoamDirectionDiagonal },
+                    { value: "all", label: labels.petRoamDirectionAll },
                     { value: "left", label: labels.petRoamDirectionLeft },
                     { value: "right", label: labels.petRoamDirectionRight }
                   ]}
