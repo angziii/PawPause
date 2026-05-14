@@ -96,11 +96,17 @@ jobs:
 
           app_dir="$(dirname "$app_path")"
           env -u APPLE_ID -u APPLE_APP_SPECIFIC_PASSWORD -u APPLE_TEAM_ID \
-            SKIP_NOTARIZE=1 pnpm exec electron-builder --mac dmg --${{ matrix.arch }} --prepackaged "$app_dir" --publish never
+            SKIP_NOTARIZE=1 pnpm exec electron-builder --mac dmg zip --${{ matrix.arch }} --prepackaged "$app_dir" --publish never
 
           dmg_path="$(find dist -name 'PawPause-*-mac-${{ matrix.arch }}.dmg' -type f -print -quit)"
           if [[ -z "$dmg_path" ]]; then
             echo "::error::macOS DMG was not generated"
+            exit 1
+          fi
+
+          zip_path="$(find dist -name 'PawPause-*-mac-${{ matrix.arch }}.zip' -type f -print -quit)"
+          if [[ -z "$zip_path" ]]; then
+            echo "::error::macOS ZIP was not generated"
             exit 1
           fi
 
@@ -141,7 +147,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
-          path: dist/PawPause-*-mac-${{ matrix.arch }}.dmg
+          path: |
+            dist/PawPause-*-mac-${{ matrix.arch }}.dmg
+            dist/PawPause-*-mac-${{ matrix.arch }}.zip
+            dist/PawPause-*-mac-${{ matrix.arch }}.zip.blockmap
           if-no-files-found: error
 
   build-windows:
@@ -169,7 +178,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-x64
-          path: dist/PawPause-*-win-x64.exe
+          path: |
+            dist/PawPause-*-win-x64.exe
+            dist/PawPause-*-win-x64.exe.blockmap
+            dist/latest.yml
           if-no-files-found: error
 
   publish:

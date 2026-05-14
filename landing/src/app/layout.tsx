@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pawpause.vercel.app";
@@ -7,6 +8,12 @@ const description =
   "PawPause is a pixel desktop companion for macOS and Windows with breaks, hydration, focus stats, low-battery reminders, and live Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes activity nudges.";
 const socialImage = "/x-card-preview.png";
 const socialImageAlt = "PawPause landing page preview";
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["800", "900"],
+  variable: "--font-logo",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -67,7 +74,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={poppins.variable}>
         {children}
       </body>
     </html>

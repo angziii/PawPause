@@ -45,10 +45,10 @@ import type { ActiveWindowInfo } from "./distraction";
 import {
   chooseAndImportPet,
   discoverInstalledPets,
-  legacyUserPetsRoot,
-  userPetsRoot
+  userPetsRoots
 } from "./petPackages";
 import { createTrayImage } from "./trayIcon";
+import { configureUpdater, scheduleStartupUpdateCheck, updaterMenuItem } from "./updater";
 
 const { app, BrowserWindow, ipcMain, Menu, nativeTheme, net, protocol, screen, shell, Tray } = electron;
 
@@ -240,15 +240,41 @@ function mergeInstalledPets(storedPets: unknown): ReturnType<typeof discoverInst
   const pets = new Map<string, ReturnType<typeof discoverInstalledPets>[number]>();
   if (Array.isArray(storedPets)) {
     for (const pet of storedPets) {
-      if (pet && typeof pet === "object" && typeof pet.slug === "string") {
-        pets.set(pet.slug, pet as ReturnType<typeof discoverInstalledPets>[number]);
-      }
+      const normalized = normalizeStoredPet(pet);
+      if (normalized) pets.set(normalized.slug, normalized);
     }
   }
   for (const pet of discoverInstalledPets()) {
     pets.set(pet.slug, pet);
   }
   return [...pets.values()];
+}
+
+function normalizeStoredPet(value: unknown): ReturnType<typeof discoverInstalledPets>[number] | null {
+  const pet = asRecord(value);
+  const manifest = asRecord(pet?.manifest);
+  if (!pet || !manifest) return null;
+
+  const slug = stringValue(pet.slug);
+  const spritesheetPath = stringValue(pet.spritesheetPath);
+  const spritesheetExt = stringValue(pet.spritesheetExt);
+  if (!slug || !spritesheetPath || !existsSync(spritesheetPath)) return null;
+  if (spritesheetExt !== "webp" && spritesheetExt !== "png") return null;
+
+  return {
+    slug,
+    manifest: {
+      id: stringValue(manifest.id) || slug,
+      displayName: stringValue(manifest.displayName) || stringValue(manifest.name) || slug,
+      description: stringValue(manifest.description),
+      author: stringValue(manifest.author),
+      spritesheet: stringValue(manifest.spritesheet) || `spritesheet.${spritesheetExt}`,
+      source: "imported"
+    },
+    spritesheetPath,
+    spritesheetExt,
+    importedAt: stringValue(pet.importedAt) || new Date().toISOString()
+  };
 }
 
 function visiblePetSize(scale: number): Pick<Electron.Rectangle, "width" | "height"> {
@@ -896,6 +922,8 @@ function actionMenuItems(): Electron.MenuItemConstructorOptions[] {
           { label: labels.demoFocusWarning, click: () => triggerDemo("focusWarning") },
           { label: labels.demoHappyReaction, click: () => triggerDemo("happy") }
         ]),
+    { type: "separator" },
+    updaterMenuItem(),
     { type: "separator" },
     { label: labels.settings, click: createSettingsWindow }
   ];
@@ -2195,6 +2223,7 @@ function openCodeHookEventFiles(): string[] {
     process.env.PAWPAUSE_AGENT_EVENTS,
     join(home, ".local", "share", "pawpause", "agent-events", "opencode.jsonl"),
     join(home, "Library", "Application Support", "PawPause", "agent-events", "opencode.jsonl"),
+    process.env.APPDATA ? join(process.env.APPDATA, "PawPause", "agent-events", "opencode.jsonl") : undefined,
     join(home, "AppData", "Roaming", "PawPause", "agent-events", "opencode.jsonl")
   ]).filter((file) => existsSync(file));
 }
@@ -2206,6 +2235,7 @@ function hermesHookEventFiles(): string[] {
     process.env.PAWPAUSE_AGENT_EVENTS,
     join(home, ".local", "share", "pawpause", "agent-events", "hermes.jsonl"),
     join(home, "Library", "Application Support", "PawPause", "agent-events", "hermes.jsonl"),
+    process.env.APPDATA ? join(process.env.APPDATA, "PawPause", "agent-events", "hermes.jsonl") : undefined,
     join(home, "AppData", "Roaming", "PawPause", "agent-events", "hermes.jsonl")
   ]).filter((file) => existsSync(file));
 }
@@ -3142,7 +3172,7 @@ async function checkAgentActivityNow(): Promise<void> {
     ]
       .filter((event) => event.timestampMs >= newestAllowedAt && event.timestampMs <= now + 30_000)
       .sort((left, right) => left.timestampMs - right.timestampMs);
-    const active = await readActiveWindow().catch(() => null);
+    const active = process.platform === "darwin" ? await readActiveWindow().catch(() => null) : null;
 
     if (!agentMonitorPrimed) {
       const latestWorking = events.filter((event) => event.kind === "working").at(-1);
@@ -3230,7 +3260,7 @@ function scheduleAgentActivityMonitor(): void {
     clearInterval(agentActivityTimer);
     agentActivityTimer = null;
   }
-  if (!getSettings().agentActivityEnabled || process.platform !== "darwin") return;
+  if (!getSettings().agentActivityEnabled) return;
   agentActivityTimer = setInterval(
     () => void checkAgentActivityNow(),
     AGENT_ACTIVITY_CHECK_INTERVAL_MS
@@ -3759,18 +3789,17 @@ app.whenReady().then(() => {
 
     const base = app.isPackaged ? process.resourcesPath : process.cwd();
     const bundledPetRoot = resolve(base, "petdex_pets");
-    const petRoot = userPetsRoot();
-    const legacyPetRoot = legacyUserPetsRoot();
+    const petRoots = userPetsRoots().map((root) => resolve(root));
     const assetPath = isAbsolute(requestedPath)
       ? resolve(requestedPath)
       : resolve(base, requestedPath);
     const isInsideBundledPetRoot =
       assetPath === bundledPetRoot || assetPath.startsWith(`${bundledPetRoot}${sep}`);
-    const isInsidePetRoot = assetPath === petRoot || assetPath.startsWith(`${petRoot}${sep}`);
-    const isInsideLegacyPetRoot =
-      assetPath === legacyPetRoot || assetPath.startsWith(`${legacyPetRoot}${sep}`);
+    const isInsidePetRoot = petRoots.some(
+      (root) => assetPath === root || assetPath.startsWith(`${root}${sep}`)
+    );
 
-    if (!isInsideBundledPetRoot && !isInsidePetRoot && !isInsideLegacyPetRoot) {
+    if (!isInsideBundledPetRoot && !isInsidePetRoot) {
       return new Response("Asset not found", { status: 404 });
     }
 
@@ -3783,6 +3812,10 @@ app.whenReady().then(() => {
   getStats();
   restoreFocusSession();
   registerIpc();
+  configureUpdater({
+    labels: () => text().menu,
+    onStateChange: updateTrayMenu
+  });
   createPetWindow();
   createTray();
   scheduleReminderTimers();
@@ -3792,6 +3825,7 @@ app.whenReady().then(() => {
   schedulePetLibraryMonitor();
   scheduleAmbientRoam();
   scheduleAmbientPose();
+  scheduleStartupUpdateCheck();
   if (IS_DEV) {
     createSettingsWindow();
   }

@@ -63,28 +63,42 @@ Download installers from [Releases](https://github.com/angziii/PawPause/releases
 
 On macOS, distraction detection and Agent window recognition require Accessibility permission.
 
-## OpenCode Agent Hook
+## Updates
 
-PawPause can consume OpenCode lifecycle events through a small OpenCode plugin:
+Windows packaged builds check GitHub Releases for updates from inside PawPause. When an update is available, PawPause asks before downloading it and asks again before restarting to install it. You can also check manually from the tray menu.
+
+Release builds are produced by GitHub Actions. The release workflow signs and notarizes macOS artifacts, builds the Windows installer, and uploads installer artifacts plus Windows update metadata to the GitHub release.
+
+## Agent Integration
+
+PawPause can react when local coding agents are working, waiting for review, finished, or failed. Enable **Agent activity alerts** in Settings, then use the matching setup below.
+
+| Agent | Setup | What PawPause Watches |
+| --- | --- | --- |
+| Codex | No plugin needed | Local Codex session JSONL files |
+| Claude Code | No plugin needed | Local Claude project/session files |
+| DeepSeek TUI | No plugin needed | `~/.deepseek/sessions` and `~/.deepseek/audit.log` |
+| OpenCode | Install the PawPause OpenCode hook | JSONL events from the hook |
+| Hermes | Install the PawPause Hermes hook | JSONL events from the hook, plus Hermes session fallback |
+
+### OpenCode
 
 ```bash
 mkdir -p ~/.config/opencode/plugins
-cp integrations/opencode/pawpause-agent-hook.js ~/.config/opencode/plugins/
+curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/opencode/pawpause-agent-hook.js \
+  -o ~/.config/opencode/plugins/pawpause-agent-hook.js
 ```
 
-The plugin writes JSONL events to `~/.local/share/pawpause/agent-events/opencode.jsonl`. You can override that path with `PAWPAUSE_AGENT_EVENTS`.
+The hook writes to `~/.local/share/pawpause/agent-events/opencode.jsonl`. Override it with `PAWPAUSE_AGENT_EVENTS` if needed.
 
-## DeepSeek TUI Activity
-
-PawPause also watches local DeepSeek TUI activity without a plugin. It reads recent session updates from `~/.deepseek/sessions` and approval events from `~/.deepseek/audit.log`, so normal chats, tool use, completion, failures, and permission prompts can move the companion.
-
-## Hermes Agent Hook
-
-PawPause can consume Hermes Agent lifecycle events through a small Hermes plugin:
+### Hermes
 
 ```bash
-mkdir -p ~/.hermes/plugins
-cp -R integrations/hermes/pawpause-agent-hook ~/.hermes/plugins/
+mkdir -p ~/.hermes/plugins/pawpause-agent-hook
+curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/hermes/pawpause-agent-hook/__init__.py \
+  -o ~/.hermes/plugins/pawpause-agent-hook/__init__.py
+curl -fsSL https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/hermes/pawpause-agent-hook/plugin.yaml \
+  -o ~/.hermes/plugins/pawpause-agent-hook/plugin.yaml
 ```
 
 Then enable it in `~/.hermes/config.yaml`:
@@ -95,9 +109,22 @@ plugins:
     - pawpause-agent-hook
 ```
 
-The plugin writes JSONL events to `~/.local/share/pawpause/agent-events/hermes.jsonl`. You can override that path with `PAWPAUSE_HERMES_AGENT_EVENTS`.
+The Hermes hook writes to `~/.local/share/pawpause/agent-events/hermes.jsonl` on Linux/macOS. When Hermes runs inside WSL and PawPause runs on Windows, the hook automatically writes to the Windows user's `%APPDATA%\PawPause\agent-events\hermes.jsonl`, so the Windows app can read the events. Override it with `PAWPAUSE_HERMES_AGENT_EVENTS` if needed.
 
-If the plugin is not installed, PawPause still watches recent Hermes session files in `~/.hermes/sessions` as a local fallback, so normal chat turns can trigger progress and completion nudges.
+### Paste This To Your Agent
+
+If you want an agent to connect itself to PawPause, paste this:
+
+```text
+Please connect this local agent to PawPause v1.0.7.
+
+- If this is Codex, Claude Code, or DeepSeek TUI, no plugin is needed. Just make sure PawPause is running and Agent activity alerts are enabled.
+- If this is OpenCode, install https://raw.githubusercontent.com/angziii/PawPause/v1.0.7/integrations/opencode/pawpause-agent-hook.js into ~/.config/opencode/plugins/pawpause-agent-hook.js.
+- If this is Hermes, create ~/.hermes/plugins/pawpause-agent-hook, download __init__.py and plugin.yaml from https://github.com/angziii/PawPause/tree/v1.0.7/integrations/hermes/pawpause-agent-hook, and enable pawpause-agent-hook in ~/.hermes/config.yaml.
+- If Hermes is running inside WSL while PawPause is running on Windows, use the v1.0.7 Hermes hook. It automatically writes events to the Windows %APPDATA%\PawPause\agent-events\hermes.jsonl path so PawPause can see them.
+
+After installing a hook, restart the agent.
+```
 
 ## Import Companions
 

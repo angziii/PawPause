@@ -168,6 +168,7 @@ const CORE_I18N = {
       demoHydrationReminder: "演示：喝水提醒",
       demoFocusWarning: "演示：分心提醒",
       demoHappyReaction: "演示：开心反馈",
+      checkForUpdates: "检查更新",
       settings: "设置",
       resetToday: "重置今日",
       quit: "退出"
@@ -432,6 +433,7 @@ const CORE_I18N = {
       demoHydrationReminder: "Demo: Hydration Reminder",
       demoFocusWarning: "Demo: Distraction Nudge",
       demoHappyReaction: "Demo: Happy Reaction",
+      checkForUpdates: "Check for Updates",
       settings: "Settings",
       resetToday: "Reset Today",
       quit: "Quit"

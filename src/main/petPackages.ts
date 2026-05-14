@@ -32,11 +32,19 @@ export function legacyUserPetsRoot(): string {
   return path.join(homedir(), ".codex", "pets");
 }
 
+export function userPetsRoots(): string[] {
+  return uniquePaths([
+    userPetsRoot(),
+    path.join(app.getPath("appData"), "PawPause", "pets"),
+    path.join(app.getPath("appData"), "PawPal", "pets"),
+    legacyUserPetsRoot()
+  ]);
+}
+
 export function discoverInstalledPets(): InstalledPet[] {
-  const roots = [userPetsRoot(), legacyUserPetsRoot()];
   const pets = new Map<string, InstalledPet>();
 
-  for (const root of roots) {
+  for (const root of userPetsRoots()) {
     if (!existsSync(root)) continue;
     for (const entry of readdirSync(root, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
@@ -330,4 +338,8 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+}
+
+function uniquePaths(paths: string[]): string[] {
+  return [...new Set(paths.map((value) => path.resolve(value)))];
 }
