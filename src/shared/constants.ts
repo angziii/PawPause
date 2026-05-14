@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS: Settings = {
   petRoamFrequencySeconds: 18,
   petRoamDurationSeconds: 5,
   petIdleMotionSeconds: 3.2,
+  petBubbleDurationSeconds: 3,
   lyricsModeEnabled: false,
   selectedPetId: "duo",
   installedPets: [],

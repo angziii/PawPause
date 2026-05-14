@@ -471,6 +471,11 @@ textarea {
   --accent: #000000;
   --accent-soft: rgba(0, 0, 0, 0.08);
   --warn: #000000;
+  --heat-0: #ebedf0;
+  --heat-1: #9be9a8;
+  --heat-2: #40c463;
+  --heat-3: #30a14e;
+  --heat-4: #216e39;
 
   background: var(--paper);
   color: var(--ink);
@@ -501,6 +506,11 @@ textarea {
     --accent: #f2ece4;
     --accent-soft: rgba(255, 246, 235, 0.1);
     --warn: #ffb199;
+    --heat-0: #2a2f2a;
+    --heat-1: #0e4429;
+    --heat-2: #006d32;
+    --heat-3: #26a641;
+    --heat-4: #39d353;
 
     scrollbar-color: rgba(255, 246, 235, 0.24) transparent;
   }
@@ -654,6 +664,204 @@ textarea {
   gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 12px;
+}
+
+.companion-stats {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.companion-stats__summary {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 14px 16px;
+}
+
+.companion-stats__summary span {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.companion-stats__summary strong {
+  align-items: baseline;
+  color: var(--ink);
+  display: flex;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  gap: 5px;
+  line-height: 1;
+}
+
+.companion-stats__summary small {
+  color: var(--ink-faint);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.focus-heatmap {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  min-width: 0;
+  padding: 12px;
+  position: relative;
+}
+
+.focus-heatmap__head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.focus-heatmap__head > span {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.focus-heatmap__legend {
+  align-items: center;
+  color: var(--ink-faint);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.focus-heatmap__legend-cell,
+.focus-heatmap__day {
+  border: 1px solid rgba(27, 31, 35, 0.06);
+  border-radius: 3px;
+  display: block;
+  height: 11px;
+  width: 11px;
+}
+
+.focus-heatmap__scroller {
+  -webkit-app-region: no-drag;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-color: rgba(60, 47, 28, 0.22) transparent;
+  scrollbar-width: thin;
+}
+
+.focus-heatmap__canvas {
+  direction: ltr;
+  min-width: calc(34px + var(--week-count) * 13px);
+}
+
+.focus-heatmap__months {
+  display: grid;
+  grid-template-columns: repeat(var(--week-count), 11px);
+  gap: 2px;
+  margin-left: 34px;
+  min-height: 18px;
+}
+
+.focus-heatmap__months span {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.focus-heatmap__body {
+  display: flex;
+  gap: 8px;
+}
+
+.focus-heatmap__weekdays {
+  display: grid;
+  flex: 0 0 26px;
+  grid-template-rows: repeat(7, 11px);
+  gap: 2px;
+}
+
+.focus-heatmap__weekdays span {
+  align-self: center;
+  color: var(--ink-faint);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: end;
+}
+
+.focus-heatmap__grid {
+  display: grid;
+  gap: 2px;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(var(--week-count), 11px);
+  grid-template-rows: repeat(7, 11px);
+}
+
+.focus-heatmap__day {
+  cursor: default;
+}
+
+.focus-heatmap__day:hover {
+  border-color: rgba(27, 31, 35, 0.26);
+}
+
+.focus-heatmap__tooltip {
+  background: #24292f;
+  border-radius: 6px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  left: 0;
+  line-height: 1.2;
+  max-width: min(260px, calc(100vw - 32px));
+  padding: 8px 10px;
+  pointer-events: none;
+  position: fixed;
+  text-align: center;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 10px));
+  white-space: nowrap;
+  z-index: 50;
+}
+
+.focus-heatmap__tooltip::after {
+  border: 5px solid transparent;
+  border-top-color: #24292f;
+  content: "";
+  left: 50%;
+  position: absolute;
+  top: 100%;
+  transform: translateX(-50%);
+}
+
+.heat-0 {
+  background: var(--heat-0);
+}
+
+.heat-1 {
+  background: var(--heat-1);
+}
+
+.heat-2 {
+  background: var(--heat-2);
+}
+
+.heat-3 {
+  background: var(--heat-3);
+}
+
+.heat-4 {
+  background: var(--heat-4);
 }
 
 .trend-card {
@@ -1404,6 +1612,12 @@ textarea {
 
   .prefs__trends {
     grid-template-columns: 1fr;
+  }
+
+  .focus-heatmap__head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .prefs__stats-head {

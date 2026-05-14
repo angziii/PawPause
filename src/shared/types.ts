@@ -3,7 +3,7 @@ export type Language = "zh-CN" | "en" | "ja" | "ko" | "es" | "fr" | "ar" | "de" 
 export type PetAppearanceId = string;
 
 export type PetFacing = "left" | "right";
-export type PetRoamDirection = "both" | "left" | "right";
+export type PetRoamDirection = "both" | "vertical" | "diagonal" | "all" | "left" | "right";
 
 export type PetState =
   | "idle"
@@ -95,6 +95,7 @@ export type Settings = {
   petRoamFrequencySeconds: number;
   petRoamDurationSeconds: number;
   petIdleMotionSeconds: number;
+  petBubbleDurationSeconds: number;
   lyricsModeEnabled: boolean;
   selectedPetId: string;
   installedPets: InstalledPet[];
