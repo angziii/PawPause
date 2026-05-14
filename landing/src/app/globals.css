@@ -111,9 +111,38 @@ a {
 }
 
 .logo-word {
-  font-family: var(--font-pixel);
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+  color: #16140f;
+  font-family: var(--font-logo), "Poppins", Avenir, "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
   font-weight: 900;
   letter-spacing: 0;
+  line-height: 0.95;
+  -webkit-text-stroke: 0.012em #16140f;
+  text-rendering: geometricPrecision;
+}
+
+.logo-word::before,
+.logo-word::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-text-stroke: 0.012em #16140f;
+}
+
+.logo-word::before {
+  z-index: -1;
+  color: var(--green);
+  transform: translate(0.055em, 0.07em);
+}
+
+.logo-word::after {
+  z-index: -2;
+  color: var(--blue);
+  transform: translate(0.095em, 0.115em);
 }
 
 .mobile-nav {

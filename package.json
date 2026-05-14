@@ -1,6 +1,6 @@
 {
   "name": "pawpause",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "A pixel desktop pet that helps you pause before you burn out.",
   "author": "zebangeth",
   "license": "MIT",
@@ -27,7 +27,20 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.png",
       "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -41,20 +54,41 @@
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "angziii",
+        "repo": "PawPause"
+      }
+    ],
     "dmg": {
       "sign": true,
       "title": "PawPause",
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "directories": {
@@ -85,6 +119,7 @@
   },
   "dependencies": {
     "electron-store": "^10.1.0",
+    "electron-updater": "^6.8.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "Which AI coding tools can PawPause react to?",
     answer:
-      "PawPause v1.0.6 includes local activity nudges for Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes Agent workflows.",
+      "PawPause v1.0.8 includes Windows in-app updates, WSL-aware Hermes Agent activity nudges, and local activity support for Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes workflows.",
   },
   {
     question: "Where can I download PawPause?",
@@ -58,7 +58,7 @@ const jsonLd = [
       name: "PawPause",
       applicationCategory: "ProductivityApplication",
       operatingSystem: "macOS, Windows",
-      softwareVersion: "1.0.6",
+      softwareVersion: "1.0.8",
       url: siteUrl,
       downloadUrl: latestReleaseUrl,
       codeRepository: repoUrl,
@@ -121,14 +121,14 @@ export default function Home() {
       <section className="answer-band answer-band--grid" id="facts" aria-labelledby="facts-title">
         <div className="answer-band__inner">
           <p className="section-kicker">Extractable facts</p>
-          <h2 id="facts-title">PawPause v1.0.6 at a glance</h2>
+          <h2 id="facts-title">PawPause v1.0.8 at a glance</h2>
           <div className="fact-grid">
             <article>
               <span>3</span>
               <h3>Installer targets</h3>
               <p>
-                PawPause v1.0.6 lists macOS Apple Silicon, macOS Intel, and Windows 64-bit
-                downloads in the project release notes.
+                PawPause v1.0.8 lists macOS Apple Silicon, macOS Intel, and Windows 64-bit
+                downloads in the project release notes and adds Windows in-app update checks.
               </p>
             </article>
             <article>

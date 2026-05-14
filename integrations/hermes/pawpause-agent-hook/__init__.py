@@ -8,12 +8,57 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import time
 from pathlib import Path
 from typing import Any
 
+_OUTPUT_PATH: Path | None = None
+
+
+def _is_wsl() -> bool:
+    if os.environ.get("WSL_DISTRO_NAME") or os.environ.get("WSL_INTEROP"):
+        return True
+    try:
+        return "microsoft" in Path("/proc/sys/kernel/osrelease").read_text(encoding="utf-8").lower()
+    except OSError:
+        return False
+
+
+def _windows_path_to_wsl_path(value: str) -> Path | None:
+    raw = value.strip().strip('"')
+    if len(raw) < 3 or raw[1:3] != ":\\":
+        return None
+    drive = raw[0].lower()
+    parts = [part for part in raw[3:].replace("/", "\\").split("\\") if part]
+    return Path("/mnt") / drive / Path(*parts)
+
+
+def _wsl_windows_appdata() -> Path | None:
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        translated = _windows_path_to_wsl_path(appdata)
+        if translated:
+            return translated
+        path = Path(appdata).expanduser()
+        if path.is_absolute():
+            return path
+
+    try:
+        output = subprocess.check_output(
+            ["cmd.exe", "/C", "echo %APPDATA%"],
+            stderr=subprocess.DEVNULL,
+            timeout=1.5,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+    return _windows_path_to_wsl_path(output)
+
 
 def _output_file() -> Path:
+    global _OUTPUT_PATH
     override = os.environ.get("PAWPAUSE_HERMES_AGENT_EVENTS") or os.environ.get("PAWPAUSE_AGENT_EVENTS")
     if override:
         return Path(override).expanduser()
@@ -22,8 +67,18 @@ def _output_file() -> Path:
         base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
         return base / "PawPause" / "agent-events" / "hermes.jsonl"
 
+    if _OUTPUT_PATH:
+        return _OUTPUT_PATH
+
+    if _is_wsl():
+        windows_appdata = _wsl_windows_appdata()
+        if windows_appdata:
+            _OUTPUT_PATH = windows_appdata / "PawPause" / "agent-events" / "hermes.jsonl"
+            return _OUTPUT_PATH
+
     base = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
-    return base / "pawpause" / "agent-events" / "hermes.jsonl"
+    _OUTPUT_PATH = base / "pawpause" / "agent-events" / "hermes.jsonl"
+    return _OUTPUT_PATH
 
 
 def _session_id(kwargs: dict[str, Any]) -> str:
