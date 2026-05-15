@@ -5,11 +5,7 @@
 <h1 align="center">PawPause</h1>
 
 <p align="center">
-  A pixel desktop companion that helps you pause, hydrate, and stay focused.
-</p>
-
-<p align="center">
-  It is local-first: settings, stats, imported companions, and focus history stay on your machine.
+  A local-first pixel companion for breaks, focus, hydration, and agent activity nudges.
 </p>
 
 <p align="center">
