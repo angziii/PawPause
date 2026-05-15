@@ -43,6 +43,30 @@ PawPause 是一款 macOS / Windows 桌面陪伴应用。它让像素小伙伴常
 
 macOS 上分心检测和 Agent 窗口识别需要辅助功能权限。
 
+## Hermes（WSL）连接 PawPause（Windows）
+
+如果 Hermes 跑在 WSL 里、PawPause 跑在 Windows 上，Hermes 写事件的路径必须映射到 Windows 用户目录。新版 Hermes hook 会自动处理；如果仍然收不到提示，可以在 WSL 里硬编码事件路径：
+
+```bash
+nano ~/.hermes/plugins/pawpause-agent-hook/__init__.py
+```
+
+把 `_output_file()` 整个替换成：
+
+```python
+def _output_file() -> Path:
+    # WSL -> Windows PawPause fallback.
+    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+```
+
+如果 Windows 用户名不是 `Administrator`，把路径里的用户名换成实际用户名。然后执行：
+
+```bash
+mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+```
+
+重启 Hermes 后，PawPause 就能从 Windows 侧读到同一个事件文件。
+
 ## 从源码运行
 
 ```bash

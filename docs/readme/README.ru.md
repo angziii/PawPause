@@ -41,6 +41,30 @@ PawPause — пиксельный настольный компаньон для
 | `PawPause-x.x.x-mac-x64.dmg` | macOS Intel |
 | `PawPause-x.x.x-win-x64.exe` | Windows 64-bit |
 
+## Hermes (WSL) ↔ PawPause (Windows)
+
+Если Hermes работает в WSL, а PawPause работает в Windows, Hermes должен писать события в путь, который видит Windows-приложение. Новый Hermes hook делает это автоматически, но если уведомления все еще не появляются, зафиксируйте путь в WSL-плагине.
+
+```bash
+nano ~/.hermes/plugins/pawpause-agent-hook/__init__.py
+```
+
+Замените всю функцию `_output_file()` на:
+
+```python
+def _output_file() -> Path:
+    # WSL -> Windows PawPause fallback.
+    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+```
+
+Если имя пользователя Windows не `Administrator`, замените его на реальное имя. Затем выполните в WSL:
+
+```bash
+mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+```
+
+После этого перезапустите Hermes.
+
 ## Запуск из исходников
 
 ```bash

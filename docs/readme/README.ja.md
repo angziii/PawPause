@@ -41,6 +41,30 @@ PawPause は macOS / Windows 向けのピクセルデスクトップ相棒です
 | `PawPause-x.x.x-mac-x64.dmg` | macOS Intel |
 | `PawPause-x.x.x-win-x64.exe` | Windows 64-bit |
 
+## Hermes（WSL）と PawPause（Windows）
+
+Hermes を WSL で実行し、PawPause を Windows で実行する場合、Hermes のイベント出力先は Windows 側から読めるパスである必要があります。新しい Hermes hook は自動対応しますが、通知が出ない場合は WSL 側の plugin でパスを固定してください。
+
+```bash
+nano ~/.hermes/plugins/pawpause-agent-hook/__init__.py
+```
+
+`_output_file()` 全体を次の内容に置き換えます。
+
+```python
+def _output_file() -> Path:
+    # WSL -> Windows PawPause fallback.
+    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+```
+
+Windows のユーザー名が `Administrator` でない場合は、その部分を実際のユーザー名に変更してください。その後 WSL で実行します。
+
+```bash
+mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+```
+
+最後に Hermes を再起動します。
+
 ## ソースから実行
 
 ```bash

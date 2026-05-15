@@ -99,6 +99,38 @@ The plugin writes JSONL events to `~/.local/share/pawpause/agent-events/hermes.j
 
 If the plugin is not installed, PawPause still watches recent Hermes session files in `~/.hermes/sessions` as a local fallback, so normal chat turns can trigger progress and completion nudges.
 
+### Hermes in WSL + PawPause on Windows
+
+If Hermes runs inside WSL and PawPause runs on Windows, Hermes must write events to a path that the Windows app also watches. The current PawPause Hermes hook handles this automatically, but if your Hermes process does not load environment variables correctly or PawPause still does not react, hardcode the event path in the WSL plugin.
+
+In WSL, edit the plugin:
+
+```bash
+nano ~/.hermes/plugins/pawpause-agent-hook/__init__.py
+```
+
+Replace the whole `_output_file()` function with:
+
+```python
+def _output_file() -> Path:
+    # WSL -> Windows PawPause fallback.
+    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+```
+
+If the Windows username is not `Administrator`, replace it in the path:
+
+```text
+/mnt/c/Users/<WindowsUserName>/.local/share/pawpause/agent-events/hermes.jsonl
+```
+
+Then create the directory from WSL:
+
+```bash
+mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+```
+
+Finally, restart Hermes. The key point is that Hermes writes from WSL into the mounted Windows user directory, and PawPause reads the same event file from Windows.
+
 ## Import Companions
 
 ### From PawPause

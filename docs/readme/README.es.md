@@ -41,6 +41,30 @@ Descarga instaladores desde [Releases](https://github.com/angziii/PawPause/relea
 | `PawPause-x.x.x-mac-x64.dmg` | macOS Intel |
 | `PawPause-x.x.x-win-x64.exe` | Windows 64-bit |
 
+## Hermes (WSL) ↔ PawPause (Windows)
+
+Si Hermes se ejecuta en WSL y PawPause en Windows, Hermes debe escribir eventos en una ruta que la app de Windows también pueda leer. El hook reciente de Hermes lo hace automáticamente, pero si PawPause sigue sin reaccionar, fija la ruta en el plugin de WSL.
+
+```bash
+nano ~/.hermes/plugins/pawpause-agent-hook/__init__.py
+```
+
+Reemplaza toda la función `_output_file()` por:
+
+```python
+def _output_file() -> Path:
+    # WSL -> Windows PawPause fallback.
+    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+```
+
+Si el usuario de Windows no es `Administrator`, cambia esa parte por el nombre real. Luego ejecuta en WSL:
+
+```bash
+mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+```
+
+Por último, reinicia Hermes.
+
 ## Ejecutar desde código fuente
 
 ```bash
