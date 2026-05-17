@@ -1,5 +1,8 @@
 import type { Settings, TodayStats } from "./types";
 
+export const DEFAULT_CUSTOM_REMINDER_COUNTDOWN_LEAD_MINUTES = 10;
+export const DEFAULT_CUSTOM_REMINDER_DUE_SCALE_MULTIPLIER = 1.6;
+
 export const DEFAULT_SETTINGS: Settings = {
   language: "zh-CN",
   petAppearanceId: "duo",
@@ -22,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hydrationReminderEnabled: true,
   hydrationIntervalMinutes: 90,
   focusDurationMinutes: 25,
+  customReminders: [],
   agentActivityEnabled: true,
   agentCompletionSoundEnabled: true,
   distractionDetectionEnabled: false,

@@ -25,6 +25,7 @@ Es local-first: los ajustes, estadísticas, compañeros importados e historial d
 - Compañero pixelado transparente, siempre visible y arrastrable
 - Recordatorios de descanso y modo opcional de bloqueo de pantalla
 - Recordatorios de agua con estadísticas históricas
+- Recordatorios diarios personalizados con cuenta atrás configurable y agrandado opcional de la mascota al avisar
 - Detección de distracciones en macOS por app o palabra clave
 - Alertas locales de Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes al terminar o requerir revisión
 - Importación de paquetes `pet.json + spritesheet.webp/png`

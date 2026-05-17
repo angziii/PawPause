@@ -77,6 +77,18 @@ export type SpeechBubble = {
   autoDismissMs?: number;
 };
 
+export type CustomReminder = {
+  id: string;
+  title: string;
+  time: string;
+  enabled: boolean;
+  showCountdownOnPet: boolean;
+  countdownLeadMinutes: number;
+  enlargePetOnDue: boolean;
+  duePetScaleMultiplier: number;
+  createdAt: number;
+};
+
 export type PetLayout = {
   petOffsetX: number;
   bubbleAnchorX: number;
@@ -108,6 +120,7 @@ export type Settings = {
   hydrationReminderEnabled: boolean;
   hydrationIntervalMinutes: number;
   focusDurationMinutes: number;
+  customReminders: CustomReminder[];
   agentActivityEnabled: boolean;
   agentCompletionSoundEnabled: boolean;
   distractionDetectionEnabled: boolean;
@@ -151,6 +164,7 @@ export type AppSnapshot = {
   distraction: DistractionStatus;
   petState: PetState;
   petFacing: PetFacing;
+  petDisplayScale: number;
   blockingMode: BlockingMode;
   focusActive: boolean;
   dogVisible: boolean;

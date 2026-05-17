@@ -6,6 +6,8 @@ import electron from "electron";
 import Store from "electron-store";
 import {
   createEmptyStats,
+  DEFAULT_CUSTOM_REMINDER_COUNTDOWN_LEAD_MINUTES,
+  DEFAULT_CUSTOM_REMINDER_DUE_SCALE_MULTIPLIER,
   DEFAULT_SETTINGS,
   todayKey
 } from "../shared/constants";
@@ -15,6 +17,7 @@ import { PETDEX_SPRITE_SIZE } from "../shared/spriteStates";
 import type {
   AppSnapshot,
   BlockingMode,
+  CustomReminder,
   DistractionStatus,
   DemoTrigger,
   PetFacing,
@@ -72,6 +75,9 @@ type FocusSession = {
 
 const MIN_PET_SCALE = 0.3;
 const MAX_PET_SCALE = 1.5;
+const MAX_CUSTOM_REMINDER_PET_SCALE = 4;
+const MIN_CUSTOM_REMINDER_SCALE_MULTIPLIER = 1;
+const MAX_CUSTOM_REMINDER_SCALE_MULTIPLIER = 3;
 const PET_VISUAL_BASE_SCALE = 0.88;
 const PET_WINDOW_PADDING = 52;
 const BUBBLE_WINDOW_WIDTH = 300;
@@ -150,6 +156,7 @@ let screenBlockCountdownTimer: NodeJS.Timeout | null = null;
 let focusWarningTimer: NodeJS.Timeout | null = null;
 let breakTimer: NodeJS.Timeout | null = null;
 let hydrationTimer: NodeJS.Timeout | null = null;
+const customReminderTimers = new Map<string, NodeJS.Timeout>();
 let focusTimer: NodeJS.Timeout | null = null;
 let distractionTimer: NodeJS.Timeout | null = null;
 let distractionStartupTimer: NodeJS.Timeout | null = null;
@@ -178,6 +185,7 @@ let nextBreakRunTurnAt = 0;
 let breakMutedToday = false;
 let dragOffset: PetPosition = { x: 0, y: 0 };
 let currentBubble: SpeechBubble | null = null;
+let petScaleOverride: number | null = null;
 let petLayout: PetLayout = {
   petOffsetX: 0,
   bubbleAnchorX: 0,
@@ -225,6 +233,22 @@ function normalizeBubbleDurationSeconds(value: unknown): number {
   return Math.round(normalized * 10) / 10;
 }
 
+function normalizeCountdownLeadMinutes(value: unknown): number {
+  return Math.round(
+    normalizeNumber(value, DEFAULT_CUSTOM_REMINDER_COUNTDOWN_LEAD_MINUTES, 1, 1440)
+  );
+}
+
+function normalizeReminderScaleMultiplier(value: unknown): number {
+  const normalized = normalizeNumber(
+    value,
+    DEFAULT_CUSTOM_REMINDER_DUE_SCALE_MULTIPLIER,
+    MIN_CUSTOM_REMINDER_SCALE_MULTIPLIER,
+    MAX_CUSTOM_REMINDER_SCALE_MULTIPLIER
+  );
+  return Math.round(normalized * 10) / 10;
+}
+
 function normalizeRoamDirection(value: unknown): PetRoamDirection {
   return value === "left" ||
     value === "right" ||
@@ -234,6 +258,42 @@ function normalizeRoamDirection(value: unknown): PetRoamDirection {
     value === "all"
     ? value
     : DEFAULT_SETTINGS.petRoamDirection;
+}
+
+function isValidReminderTime(value: unknown): value is string {
+  return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function normalizeCustomReminders(value: unknown): CustomReminder[] {
+  if (!Array.isArray(value)) return DEFAULT_SETTINGS.customReminders;
+  const seen = new Set<string>();
+  return value.flatMap((entry, index): CustomReminder[] => {
+    if (!entry || typeof entry !== "object") return [];
+    const record = entry as Partial<CustomReminder>;
+    const title = typeof record.title === "string" ? record.title.trim() : "";
+    if (!title || !isValidReminderTime(record.time)) return [];
+    const rawId = typeof record.id === "string" && record.id.trim()
+      ? record.id.trim()
+      : `reminder-${index}-${record.time}`;
+    const id = seen.has(rawId) ? `${rawId}-${index}` : rawId;
+    seen.add(id);
+    return [
+      {
+        id,
+        title,
+        time: record.time,
+        enabled: record.enabled !== false,
+        showCountdownOnPet: Boolean(record.showCountdownOnPet),
+        countdownLeadMinutes: normalizeCountdownLeadMinutes(record.countdownLeadMinutes),
+        enlargePetOnDue: Boolean(record.enlargePetOnDue),
+        duePetScaleMultiplier: normalizeReminderScaleMultiplier(record.duePetScaleMultiplier),
+        createdAt:
+          typeof record.createdAt === "number" && Number.isFinite(record.createdAt)
+            ? record.createdAt
+            : Date.now()
+      }
+    ];
+  });
 }
 
 function mergeInstalledPets(storedPets: unknown): ReturnType<typeof discoverInstalledPets> {
@@ -277,6 +337,10 @@ function petWindowSize(
     width: Math.max(BUBBLE_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING * 2),
     height: petSize.height + BUBBLE_WINDOW_EXTRA_HEIGHT
   };
+}
+
+function currentPetDisplayScale(settings = getSettings()): number {
+  return petScaleOverride ?? settings.petScale;
 }
 let preScreenBlockBounds: Electron.Rectangle | null = null;
 let distractionStatus: DistractionStatus = {
@@ -353,6 +417,7 @@ function getSettings(): Settings {
       typeof stored.agentCompletionSoundEnabled === "boolean"
         ? stored.agentCompletionSoundEnabled
         : DEFAULT_SETTINGS.agentCompletionSoundEnabled,
+    customReminders: normalizeCustomReminders(stored.customReminders),
     selectedPetId,
     installedPets
   };
@@ -377,6 +442,7 @@ function setSettings(next: Settings): void {
     lyricsModeEnabled: Boolean(next.lyricsModeEnabled),
     screenBlockDurationSeconds: normalizeNumber(next.screenBlockDurationSeconds, 120, 15, 600),
     screenBlockCoverageRatio: normalizeNumber(next.screenBlockCoverageRatio, 0.4, 0.35, 1),
+    customReminders: normalizeCustomReminders(next.customReminders),
     agentActivityEnabled: Boolean(next.agentActivityEnabled),
     agentCompletionSoundEnabled: Boolean(next.agentCompletionSoundEnabled),
     installedPets: mergeInstalledPets(next.installedPets)
@@ -384,7 +450,7 @@ function setSettings(next: Settings): void {
   store.set("settings", normalized);
   if (normalized.lyricsModeEnabled) stopPetDrag();
   updatePetWindowMouseEvents(normalized.lyricsModeEnabled);
-  resizePetWindowForScale(normalized.petScale);
+  resizePetWindowForScale(currentPetDisplayScale(normalized), Boolean(currentBubble));
   sendToAll("settings:updated", normalized);
   settingsWindow?.setTitle(`${APP_NAME} ${text().menu.settings}`);
   scheduleReminderTimers();
@@ -504,8 +570,9 @@ function resetTodayStats(): void {
 }
 
 function snapshot(): AppSnapshot {
+  const settings = getSettings();
   return {
-    settings: getSettings(),
+    settings,
     stats: getStats(),
     statsHistory: getStatsHistory(),
     timers: {
@@ -517,6 +584,7 @@ function snapshot(): AppSnapshot {
     distraction: distractionStatus,
     petState,
     petFacing,
+    petDisplayScale: currentPetDisplayScale(settings),
     blockingMode,
     dogVisible: Boolean(petWindow?.isVisible()),
     focusActive,
@@ -614,7 +682,7 @@ function showBubble(bubble: SpeechBubble): void {
   }
   const renderToken = ++bubbleRenderToken;
   currentBubble = bubble;
-  resizePetWindowForScale(getSettings().petScale, true);
+  resizePetWindowForScale(currentPetDisplayScale(), true);
   // Let the transparent window finish resizing before changing rendered content.
   bubbleResizeSettleTimer = setTimeout(() => {
     bubbleResizeSettleTimer = null;
@@ -642,8 +710,14 @@ function hideBubble(): void {
   bubbleResizeSettleTimer = setTimeout(() => {
     bubbleResizeSettleTimer = null;
     if (renderToken !== bubbleRenderToken || currentBubble) return;
-    resizePetWindowForScale(getSettings().petScale, false);
+    resizePetWindowForScale(currentPetDisplayScale(), false);
   }, BUBBLE_RESIZE_SETTLE_MS);
+}
+
+function setPetScaleOverride(scale: number | null): void {
+  petScaleOverride = scale;
+  resizePetWindowForScale(currentPetDisplayScale(), Boolean(currentBubble));
+  publishSnapshot();
 }
 
 function rendererUrl(route: "pet" | "settings"): string {
@@ -1455,6 +1529,7 @@ function restorePetWindowAfterScreenBlock(): void {
 function scheduleReminderTimers(): void {
   if (breakTimer) clearTimeout(breakTimer);
   if (hydrationTimer) clearTimeout(hydrationTimer);
+  scheduleCustomReminderTimers();
   breakDueAt = null;
   breakSnoozeDueAt = null;
   hydrationDueAt = null;
@@ -3477,6 +3552,77 @@ function triggerHydrationReminder(fromDemo: boolean): void {
   });
 }
 
+function nextCustomReminderDueAt(time: string, from = Date.now()): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  const due = new Date(from);
+  due.setHours(hours, minutes, 0, 0);
+  if (due.getTime() <= from) due.setDate(due.getDate() + 1);
+  return due.getTime();
+}
+
+function clearCustomReminderTimers(): void {
+  for (const timer of customReminderTimers.values()) {
+    clearTimeout(timer);
+  }
+  customReminderTimers.clear();
+}
+
+function scheduleCustomReminderTimers(): void {
+  clearCustomReminderTimers();
+  for (const reminder of getSettings().customReminders) {
+    if (!reminder.enabled || !isValidReminderTime(reminder.time)) continue;
+    const dueAt = nextCustomReminderDueAt(reminder.time);
+    const delay = Math.max(500, dueAt - Date.now());
+    customReminderTimers.set(
+      reminder.id,
+      setTimeout(() => triggerCustomReminder(reminder.id), delay)
+    );
+  }
+}
+
+function triggerCustomReminder(reminderId: string): void {
+  const settings = getSettings();
+  const reminder = settings.customReminders.find((entry) => entry.id === reminderId);
+  if (!reminder || !reminder.enabled) {
+    scheduleCustomReminderTimers();
+    return;
+  }
+
+  if (blockingMode) {
+    customReminderTimers.set(
+      reminder.id,
+      setTimeout(() => triggerCustomReminder(reminder.id), 60_000)
+    );
+    return;
+  }
+
+  ensurePetWindowVisible();
+  stopAmbientRoam(false);
+  stopAmbientPose(true);
+  clearAgentPose(true);
+  if (reminder.enlargePetOnDue) {
+    setPetScaleOverride(
+      Math.min(MAX_CUSTOM_REMINDER_PET_SCALE, settings.petScale * reminder.duePetScaleMultiplier)
+    );
+  } else if (petScaleOverride) {
+    setPetScaleOverride(null);
+  }
+  setPetState("waving");
+  showBubble({
+    id: `custom-reminder-${reminder.id}-${Date.now()}`,
+    message: pick(text().bubble.customReminder)(reminder.title),
+    actions: [
+      {
+        id: `custom-reminder:dismiss:${reminder.id}`,
+        label: text().actions.customReminderDone,
+        kind: "primary"
+      }
+    ]
+  });
+  scheduleCustomReminderTimers();
+  publishSnapshot();
+}
+
 function finishFocusWarning(): void {
   if (focusWarningTimer) {
     clearTimeout(focusWarningTimer);
@@ -3599,6 +3745,19 @@ function handleBubbleAction(actionId: string): void {
   if (getSettings().lyricsModeEnabled) return;
   if (actionId.startsWith("agent:open:")) {
     void focusAgentWindowForAction(actionId);
+    return;
+  }
+  if (actionId.startsWith("custom-reminder:dismiss:")) {
+    setPetScaleOverride(null);
+    hideBubble();
+    if (!blockingMode) {
+      setPetState(focusActive ? "focusGuard" : "idle");
+      if (!focusActive) {
+        scheduleAmbientRoam();
+        scheduleAmbientPose();
+      }
+    }
+    publishSnapshot();
     return;
   }
   if (actionId === "break-run:done") {
@@ -3802,6 +3961,7 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", () => {
+  clearCustomReminderTimers();
   for (const timer of [
     breakRunTimer,
     breakRunCountdownTimer,

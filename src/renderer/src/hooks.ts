@@ -32,6 +32,7 @@ export function useSnapshot(): AppSnapshot {
     },
     petState: "idle",
     petFacing: "right",
+    petDisplayScale: DEFAULT_SETTINGS.petScale,
     blockingMode: null,
     focusActive: false,
     dogVisible: true,
@@ -48,7 +49,14 @@ export function useSnapshot(): AppSnapshot {
       setSnapshot((current) => ({ ...current, petState }))
     );
     const offSettings = window.pawpause.onSettingsUpdated((settings) =>
-      setSnapshot((current) => ({ ...current, settings }))
+      setSnapshot((current) => ({
+        ...current,
+        settings,
+        petDisplayScale:
+          current.petDisplayScale === current.settings.petScale
+            ? settings.petScale
+            : current.petDisplayScale
+      }))
     );
     const offStats = window.pawpause.onStatsUpdated((stats) =>
       setSnapshot((current) => ({

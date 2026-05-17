@@ -40,6 +40,7 @@ PawPause is a macOS and Windows desktop companion. It keeps a small pixel friend
 - **Pixel companion**: transparent, always-on-top, draggable desktop companion with animated states.
 - **Break intervention**: optional screen-block break mode when a reminder is easy to ignore.
 - **Hydration reminders**: water reminders with daily and historical stats.
+- **Custom reminders**: daily reminders with pet countdowns that appear only shortly before they are due, plus optional due-time pet enlargement.
 - **Focus mode**: macOS active-window detection can trigger full-screen distraction nudges for blocked apps or keywords.
 - **Agent activity alerts**: local Codex, Claude Code, OpenCode, DeepSeek TUI, and Hermes events can trigger completion, failure, review-needed, and progress nudges.
 - **Pet imports**: import `pet.json + spritesheet.webp/png` folders or zip packages in the app.

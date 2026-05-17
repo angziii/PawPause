@@ -25,6 +25,7 @@ PawPause 是一款 macOS / Windows 桌面陪伴应用。它让像素小伙伴常
 - 透明、置顶、可拖动的像素桌宠
 - 休息提醒和可选挡屏休息模式
 - 喝水提醒和历史统计
+- 自定义每日提醒：倒计时可设置提前多久显示，到点后可按比例放大桌宠
 - macOS 分心检测：命中屏蔽应用或关键词时提醒
 - Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes 本地会话完成提醒
 - 应用内导入 `pet.json + spritesheet.webp/png` 角色包
