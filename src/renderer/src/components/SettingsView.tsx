@@ -2,7 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, JSX, ReactNode } from "react";
 import { i18n, LANGUAGE_OPTIONS, resolveLanguage } from "../../../shared/i18n";
 import { allPets } from "../../../shared/bundledPets";
+import {
+  DEFAULT_CUSTOM_REMINDER_COUNTDOWN_LEAD_MINUTES,
+  DEFAULT_CUSTOM_REMINDER_DUE_SCALE_MULTIPLIER
+} from "../../../shared/constants";
 import type {
+  CustomReminder,
   DemoTrigger,
   InstalledPet,
   PetRoamDirection,
@@ -15,7 +20,7 @@ import { useNow, useSnapshot } from "../hooks";
 
 type SettingsCopy = ReturnType<typeof i18n>["settings"];
 type StatsRange = "day" | "month" | "all";
-type PrefsPage = "stats" | "pets" | "settings";
+type PrefsPage = "stats" | "pets" | "reminders" | "settings";
 type StatsMetric = "breaksTaken" | "watersLogged" | "focusMinutes" | "focusWarnings";
 type StatsTrendPoint = TodayStats & {
   label: string;
@@ -209,7 +214,7 @@ function SegmentedControl<T extends string>({
   options,
   onChange
 }: {
-  value: T;
+  value: T | null;
   options: Array<{ value: T; label: string }>;
   onChange: (value: T) => void;
 }): JSX.Element {
@@ -377,6 +382,19 @@ function formatWeekdayLabel(dayIndex: number, language: Settings["language"]): s
   return new Intl.DateTimeFormat(localeFor(language), {
     weekday: "short"
   }).format(date);
+}
+
+function nextReminderDueAt(time: string, now: number): number | null {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
+  const [hours, minutes] = time.split(":").map(Number);
+  const due = new Date(now);
+  due.setHours(hours, minutes, 0, 0);
+  if (due.getTime() <= now) due.setDate(due.getDate() + 1);
+  return due.getTime();
+}
+
+function createReminderId(): string {
+  return `reminder-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function buildTrendPoints(
@@ -665,6 +683,9 @@ export function SettingsView(): JSX.Element {
   const [page, setPage] = useState<PrefsPage>("stats");
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [newReminderTitle, setNewReminderTitle] = useState("");
+  const [newReminderTime, setNewReminderTime] = useState("11:30");
+  const [newReminderCountdown, setNewReminderCountdown] = useState(true);
   const now = useNow();
   const savedSettingsKey = JSON.stringify(settings);
   const language = resolveLanguage(draft.language);
@@ -716,6 +737,42 @@ export function SettingsView(): JSX.Element {
     setSettingsDirty(true);
   }
 
+  function updateCustomReminders(customReminders: CustomReminder[]): void {
+    updateDraft({ customReminders });
+  }
+
+  function updateReminder(reminderId: string, partial: Partial<CustomReminder>): void {
+    updateCustomReminders(
+      draft.customReminders.map((reminder) =>
+        reminder.id === reminderId ? { ...reminder, ...partial } : reminder
+      )
+    );
+  }
+
+  function addCustomReminder(): void {
+    const title = newReminderTitle.trim() || labels.reminderUntitled;
+    const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(newReminderTime) ? newReminderTime : "11:30";
+    updateCustomReminders([
+      ...draft.customReminders,
+      {
+        id: createReminderId(),
+        title,
+        time,
+        enabled: true,
+        showCountdownOnPet: newReminderCountdown,
+        countdownLeadMinutes: DEFAULT_CUSTOM_REMINDER_COUNTDOWN_LEAD_MINUTES,
+        enlargePetOnDue: false,
+        duePetScaleMultiplier: DEFAULT_CUSTOM_REMINDER_DUE_SCALE_MULTIPLIER,
+        createdAt: Date.now()
+      }
+    ]);
+    setNewReminderTitle("");
+  }
+
+  function removeCustomReminder(reminderId: string): void {
+    updateCustomReminders(draft.customReminders.filter((reminder) => reminder.id !== reminderId));
+  }
+
   async function importPet(): Promise<void> {
     setImportStatus(null);
     const result = await window.pawpause.importPetPackage();
@@ -738,10 +795,11 @@ export function SettingsView(): JSX.Element {
     <main className="prefs" dir={language === "ar" ? "rtl" : "ltr"}>
       <header className="prefs__topbar">
         <SegmentedControl
-          value={page === "pets" ? "pets" : "stats"}
+          value={page === "settings" ? null : page}
           options={[
             { value: "stats", label: labels.statsHeading },
-            { value: "pets", label: labels.petAppearance }
+            { value: "pets", label: labels.petAppearance },
+            { value: "reminders", label: labels.reminderPageTitle }
           ]}
           onChange={(value) => setPage(value)}
         />
@@ -754,6 +812,7 @@ export function SettingsView(): JSX.Element {
         </button>
       </header>
       {page === "settings" ? <h1 className="prefs__page-title">{labels.title}</h1> : null}
+      {page === "reminders" ? <h1 className="prefs__page-title">{labels.reminderPageTitle}</h1> : null}
 
       {page === "stats" ? (
         <section className="prefs__stats-panel" aria-label={labels.statsHeading}>
@@ -860,6 +919,67 @@ export function SettingsView(): JSX.Element {
               {labels.petdexDownloadCta}
             </a>
           </p>
+        </section>
+      ) : null}
+
+      {page === "reminders" ? (
+        <section className="prefs__group prefs__group--first reminder-page">
+          <div className="reminder-composer">
+            <label className="reminder-field reminder-field--title">
+              <span>{labels.reminderTitle}</span>
+              <input
+                type="text"
+                className="reminder-input"
+                value={newReminderTitle}
+                placeholder={labels.reminderTitlePlaceholder}
+                onChange={(event) => setNewReminderTitle(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addCustomReminder();
+                  }
+                }}
+              />
+            </label>
+            <label className="reminder-field">
+              <span>{labels.reminderTime}</span>
+              <input
+                type="time"
+                className="reminder-input reminder-input--time"
+                value={newReminderTime}
+                onChange={(event) => setNewReminderTime(event.target.value)}
+              />
+            </label>
+            <div className="reminder-composer__toggle">
+              <span>{labels.customReminderCountdown}</span>
+              <ToggleControl
+                checked={newReminderCountdown}
+                onChange={setNewReminderCountdown}
+                ariaLabel={labels.customReminderCountdown}
+              />
+            </div>
+            <button type="button" className="pref-action reminder-composer__add" onClick={addCustomReminder}>
+              {labels.addReminder}
+            </button>
+          </div>
+
+          {draft.customReminders.length ? (
+            <div className="reminder-list">
+              {draft.customReminders.map((reminder) => (
+                <ReminderCard
+                  key={reminder.id}
+                  reminder={reminder}
+                  labels={labels}
+                  language={language}
+                  now={now}
+                  onChange={(partial) => updateReminder(reminder.id, partial)}
+                  onRemove={() => removeCustomReminder(reminder.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="reminder-empty">{labels.emptyReminders}</p>
+          )}
         </section>
       ) : null}
 
@@ -1265,6 +1385,119 @@ export function SettingsView(): JSX.Element {
         </>
       ) : null}
     </main>
+  );
+}
+
+function ReminderCard({
+  reminder,
+  labels,
+  language,
+  now,
+  onChange,
+  onRemove
+}: {
+  reminder: CustomReminder;
+  labels: SettingsCopy;
+  language: Settings["language"];
+  now: number;
+  onChange: (partial: Partial<CustomReminder>) => void;
+  onRemove: () => void;
+}): JSX.Element {
+  const dueAt = nextReminderDueAt(reminder.time, now);
+  const nextLabel = formatTimer(dueAt, now, language, labels);
+
+  return (
+    <article className={`reminder-card${reminder.enabled ? "" : " is-disabled"}`}>
+      <div className="reminder-card__main">
+        <input
+          type="text"
+          className="reminder-input reminder-input--name"
+          value={reminder.title}
+          aria-label={labels.reminderTitle}
+          onChange={(event) => {
+            const title = event.target.value;
+            if (title.trim()) onChange({ title });
+          }}
+        />
+        <div className="reminder-card__meta">
+          <label className="reminder-time-edit">
+            <span>{labels.reminderTime}</span>
+            <input
+              type="time"
+              className="reminder-input reminder-input--time"
+              value={reminder.time}
+              onChange={(event) => {
+                if (event.target.value) onChange({ time: event.target.value });
+              }}
+            />
+          </label>
+          <span className="reminder-card__next">
+            {labels.customReminderNextAt}: {nextLabel}
+          </span>
+        </div>
+      </div>
+      <div className="reminder-card__controls">
+        <div className="reminder-toggle-row">
+          <span>{labels.customReminderEnabled}</span>
+          <ToggleControl
+            checked={reminder.enabled}
+            onChange={(enabled) => onChange({ enabled })}
+            ariaLabel={labels.customReminderEnabled}
+          />
+        </div>
+        <div className="reminder-toggle-row">
+          <span>{labels.customReminderCountdown}</span>
+          <ToggleControl
+            checked={reminder.showCountdownOnPet}
+            onChange={(showCountdownOnPet) => onChange({ showCountdownOnPet })}
+            ariaLabel={labels.customReminderCountdown}
+          />
+        </div>
+        {reminder.showCountdownOnPet ? (
+          <div className="reminder-control-row reminder-control-row--number">
+            <span>{labels.customReminderCountdownLead}</span>
+            <NumberControl
+              value={reminder.countdownLeadMinutes}
+              min={1}
+              max={1440}
+              unit={labels.minuteUnit}
+              onChange={(countdownLeadMinutes) => onChange({ countdownLeadMinutes })}
+            />
+          </div>
+        ) : null}
+        <div className="reminder-toggle-row">
+          <span>{labels.customReminderEnlargeOnDue}</span>
+          <ToggleControl
+            checked={reminder.enlargePetOnDue}
+            onChange={(enlargePetOnDue) => onChange({ enlargePetOnDue })}
+            ariaLabel={labels.customReminderEnlargeOnDue}
+          />
+        </div>
+        {reminder.enlargePetOnDue ? (
+          <div className="reminder-control-row reminder-control-row--number">
+            <span>{labels.customReminderEnlargeScale}</span>
+            <NumberControl
+              value={Math.round(reminder.duePetScaleMultiplier * 100)}
+              min={100}
+              max={300}
+              step={10}
+              unit="%"
+              onChange={(duePetScalePercent) =>
+                onChange({ duePetScaleMultiplier: duePetScalePercent / 100 })
+              }
+            />
+          </div>
+        ) : null}
+        <button
+          type="button"
+          className="pref-chip-button reminder-card__remove"
+          aria-label={labels.removeReminder(reminder.title)}
+          onClick={onRemove}
+        >
+          ×
+        </button>
+      </div>
+    </article>
   );
 }
 

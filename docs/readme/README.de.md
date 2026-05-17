@@ -25,6 +25,7 @@ Local-first: Einstellungen, Statistiken, importierte Begleiter und Fokusverlauf 
 - Transparenter, immer sichtbarer und verschiebbarer Pixel-Begleiter
 - Pausenerinnerungen und optionaler Bildschirmblock
 - Wassererinnerungen mit Verlauf
+- Eigene tägliche Erinnerungen mit einstellbarem Countdown-Vorlauf und optionaler Vergrößerung beim Hinweis
 - macOS-Ablenkungserkennung nach App oder Schlüsselwort
 - Lokale Codex / Claude-Code / OpenCode / DeepSeek TUI / Hermes-Hinweise bei Abschluss oder Review-Bedarf
 - Import von `pet.json + spritesheet.webp/png` Paketen

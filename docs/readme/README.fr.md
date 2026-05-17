@@ -25,6 +25,7 @@ Il est local-first : les réglages, statistiques, compagnons importés et histor
 - Compagnon pixel transparent, toujours au premier plan et déplaçable
 - Rappels de pause et mode optionnel de blocage d'écran
 - Rappels d'hydratation avec statistiques historiques
+- Rappels quotidiens personnalisés avec compte à rebours configurable et agrandissement optionnel du compagnon à l'alerte
 - Détection des distractions sur macOS par app ou mot-clé
 - Alertes locales Codex / Claude Code / OpenCode / DeepSeek TUI / Hermes quand une session se termine ou demande une revue
 - Import de paquets `pet.json + spritesheet.webp/png`

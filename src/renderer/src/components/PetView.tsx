@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, JSX, PointerEvent } from "react";
 import { i18n, resolveLanguage } from "../../../shared/i18n";
-import type { PetLayout, SpeechBubble } from "../../../shared/types";
+import type { CustomReminder, PetLayout, SpeechBubble } from "../../../shared/types";
 import { getSelectedPetAsset } from "../assets";
 import { useNow, useSnapshot } from "../hooks";
 
@@ -20,6 +20,27 @@ function formatFocusCountdown(endsAt: number | null, now: number): string {
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
   const seconds = remainingSeconds % 60;
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function nextReminderDueAt(time: string, now: number): number | null {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
+  const [hours, minutes] = time.split(":").map(Number);
+  const due = new Date(now);
+  due.setHours(hours, minutes, 0, 0);
+  if (due.getTime() <= now) due.setDate(due.getDate() + 1);
+  return due.getTime();
+}
+
+function reminderCountdowns(reminders: CustomReminder[], now: number): Array<CustomReminder & { dueAt: number }> {
+  return reminders
+    .flatMap((reminder): Array<CustomReminder & { dueAt: number }> => {
+      if (!reminder.enabled || !reminder.showCountdownOnPet) return [];
+      const dueAt = nextReminderDueAt(reminder.time, now);
+      const leadMs = Math.max(1, reminder.countdownLeadMinutes) * 60 * 1000;
+      if (!dueAt || dueAt - now > leadMs) return [];
+      return dueAt ? [{ ...reminder, dueAt }] : [];
+    })
+    .sort((left, right) => left.dueAt - right.dueAt);
 }
 
 export function PetView(): JSX.Element {
@@ -58,6 +79,9 @@ export function PetView(): JSX.Element {
   const asset = getSelectedPetAsset(selectedPetId, snapshot.settings.installedPets, state);
   const lyricsModeEnabled = snapshot.settings.lyricsModeEnabled;
   const bubbleClickActionId = !lyricsModeEnabled && !bubble?.actions?.length ? bubble?.clickActionId : undefined;
+  const countdownReminders = reminderCountdowns(snapshot.settings.customReminders, now);
+  const visibleCountdownReminders = countdownReminders.slice(0, 3);
+  const hiddenCountdownCount = Math.max(0, countdownReminders.length - visibleCountdownReminders.length);
 
   function finishPointerDrag(clicked: boolean): void {
     const drag = dragRef.current;
@@ -134,6 +158,7 @@ export function PetView(): JSX.Element {
       style={
         {
           "--pet-scale": snapshot.settings.petScale,
+          "--pet-display-scale": snapshot.petDisplayScale,
           "--idle-motion-duration": `${snapshot.settings.petIdleMotionSeconds}s`,
           "--pet-layout-offset-x": `${layout.petOffsetX}px`,
           "--bubble-anchor-x": `${layout.bubbleAnchorX}px`,
@@ -191,6 +216,22 @@ export function PetView(): JSX.Element {
         <div className="focus-badge break-snooze-badge">
           <span>{labels.break}</span>
           <strong>{formatFocusCountdown(snapshot.timers.breakSnoozeDueAt, now)}</strong>
+        </div>
+      ) : null}
+
+      {visibleCountdownReminders.length ? (
+        <div className="reminder-countdowns" aria-label={labels.reminderPageTitle}>
+          {visibleCountdownReminders.map((reminder) => (
+            <div className="reminder-countdown-badge" key={reminder.id}>
+              <span>{reminder.title}</span>
+              <strong>{formatFocusCountdown(reminder.dueAt, now)}</strong>
+            </div>
+          ))}
+          {hiddenCountdownCount ? (
+            <div className="reminder-countdown-badge reminder-countdown-badge--more">
+              <span>{labels.countdownMore(hiddenCountdownCount)}</span>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
