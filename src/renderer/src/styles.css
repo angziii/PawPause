@@ -1393,13 +1393,12 @@ textarea {
   border-radius: 8px;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) 132px 132px auto;
+  grid-template-columns: minmax(0, 1fr) 132px auto;
   padding: 12px;
 }
 
 .reminder-field,
 .reminder-time-edit,
-.reminder-composer__toggle,
 .reminder-toggle-row {
   display: flex;
   flex-direction: column;
@@ -1408,7 +1407,6 @@ textarea {
 
 .reminder-field span,
 .reminder-time-edit span,
-.reminder-composer__toggle span,
 .reminder-toggle-row span {
   color: var(--ink-soft);
   font-size: 11.5px;
@@ -1435,10 +1433,6 @@ textarea {
 .reminder-input--time {
   color-scheme: light dark;
   font-variant-numeric: tabular-nums;
-}
-
-.reminder-composer__toggle {
-  align-items: flex-start;
 }
 
 .reminder-composer__add {
