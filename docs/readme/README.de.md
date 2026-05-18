@@ -55,13 +55,13 @@ Ersetze die gesamte Funktion `_output_file()` durch:
 ```python
 def _output_file() -> Path:
     # WSL -> Windows PawPause fallback.
-    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+    return Path("/mnt/c/Users/Administrator/AppData/Roaming/PawPause/agent-events/hermes.jsonl")
 ```
 
 Wenn der Windows-Benutzername nicht `Administrator` ist, ersetze diesen Teil durch den echten Benutzernamen. Danach in WSL ausführen:
 
 ```bash
-mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+mkdir -p /mnt/c/Users/Administrator/AppData/Roaming/PawPause/agent-events
 ```
 
 Starte Hermes anschließend neu.

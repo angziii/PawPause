@@ -55,13 +55,13 @@ nano ~/.hermes/plugins/pawpause-agent-hook/__init__.py
 ```python
 def _output_file() -> Path:
     # WSL -> Windows PawPause fallback.
-    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+    return Path("/mnt/c/Users/Administrator/AppData/Roaming/PawPause/agent-events/hermes.jsonl")
 ```
 
 Windows 사용자 이름이 `Administrator`가 아니면 실제 사용자 이름으로 바꿔 주세요. 그다음 WSL에서 실행합니다.
 
 ```bash
-mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+mkdir -p /mnt/c/Users/Administrator/AppData/Roaming/PawPause/agent-events
 ```
 
 마지막으로 Hermes를 다시 시작하세요.

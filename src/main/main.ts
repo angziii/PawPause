@@ -2261,29 +2261,53 @@ function makeAgentEvent(
   };
 }
 
-function uniqueStrings(values: Array<string | undefined>): string[] {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+function uniqueStrings(values: Array<string | undefined | null>): string[] {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const value of values) {
+    if (!value) continue;
+    const key = process.platform === "win32" ? value.toLowerCase() : value;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(value);
+  }
+  return unique;
+}
+
+function windowsAppDataRoots(): string[] {
+  if (process.platform !== "win32") return [];
+  const home = app.getPath("home");
+  return uniqueStrings([
+    process.env.APPDATA,
+    process.env.LOCALAPPDATA,
+    join(home, "AppData", "Roaming"),
+    join(home, "AppData", "Local")
+  ]);
+}
+
+function pawpauseAgentEventFiles(fileName: string, override?: string): string[] {
+  const home = app.getPath("home");
+  const windowsFiles = windowsAppDataRoots().map((root) =>
+    join(root, "PawPause", "agent-events", fileName)
+  );
+  return uniqueStrings([
+    override,
+    join(home, ".local", "share", "pawpause", "agent-events", fileName),
+    join(home, "Library", "Application Support", "PawPause", "agent-events", fileName),
+    join(app.getPath("userData"), "agent-events", fileName),
+    ...windowsFiles
+  ]).filter((file) => existsSync(file));
 }
 
 function openCodeHookEventFiles(): string[] {
-  const home = app.getPath("home");
-  return uniqueStrings([
-    process.env.PAWPAUSE_AGENT_EVENTS,
-    join(home, ".local", "share", "pawpause", "agent-events", "opencode.jsonl"),
-    join(home, "Library", "Application Support", "PawPause", "agent-events", "opencode.jsonl"),
-    join(home, "AppData", "Roaming", "PawPause", "agent-events", "opencode.jsonl")
-  ]).filter((file) => existsSync(file));
+  return pawpauseAgentEventFiles("opencode.jsonl", process.env.PAWPAUSE_AGENT_EVENTS);
 }
 
 function hermesHookEventFiles(): string[] {
-  const home = app.getPath("home");
   return uniqueStrings([
-    process.env.PAWPAUSE_HERMES_AGENT_EVENTS,
-    process.env.PAWPAUSE_AGENT_EVENTS,
-    join(home, ".local", "share", "pawpause", "agent-events", "hermes.jsonl"),
-    join(home, "Library", "Application Support", "PawPause", "agent-events", "hermes.jsonl"),
-    join(home, "AppData", "Roaming", "PawPause", "agent-events", "hermes.jsonl")
-  ]).filter((file) => existsSync(file));
+    ...pawpauseAgentEventFiles("hermes.jsonl", process.env.PAWPAUSE_HERMES_AGENT_EVENTS),
+    ...pawpauseAgentEventFiles("hermes.jsonl", process.env.PAWPAUSE_AGENT_EVENTS)
+  ]);
 }
 
 function agentEventKind(value: string): AgentEventKind | null {
@@ -2565,8 +2589,12 @@ function collectHermesHookEvents(): AgentMonitorEvent[] {
   return events;
 }
 
-function hermesSessionRoot(): string {
-  return join(app.getPath("home"), ".hermes", "sessions");
+function hermesSessionRoots(): string[] {
+  return uniqueStrings([
+    process.env.PAWPAUSE_HERMES_SESSIONS,
+    process.env.HERMES_SESSIONS_DIR,
+    join(app.getPath("home"), ".hermes", "sessions")
+  ]);
 }
 
 function hermesMessageText(message: Record<string, unknown>): string {
@@ -2585,7 +2613,9 @@ function hermesMessageText(message: Record<string, unknown>): string {
 }
 
 function collectHermesSessionEvents(): AgentMonitorEvent[] {
-  const files = listRecentFiles(hermesSessionRoot(), ".json", 6);
+  const files = uniqueStrings(
+    hermesSessionRoots().flatMap((root) => listRecentFiles(root, ".json", 6))
+  ).slice(0, 12);
   const events: AgentMonitorEvent[] = [];
 
   for (const file of files) {
@@ -3306,7 +3336,7 @@ function scheduleAgentActivityMonitor(): void {
     clearInterval(agentActivityTimer);
     agentActivityTimer = null;
   }
-  if (!getSettings().agentActivityEnabled || process.platform !== "darwin") return;
+  if (!getSettings().agentActivityEnabled) return;
   agentActivityTimer = setInterval(
     () => void checkAgentActivityNow(),
     AGENT_ACTIVITY_CHECK_INTERVAL_MS

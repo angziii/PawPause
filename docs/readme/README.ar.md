@@ -57,13 +57,13 @@ nano ~/.hermes/plugins/pawpause-agent-hook/__init__.py
 ```python
 def _output_file() -> Path:
     # WSL -> Windows PawPause fallback.
-    return Path("/mnt/c/Users/Administrator/.local/share/pawpause/agent-events/hermes.jsonl")
+    return Path("/mnt/c/Users/Administrator/AppData/Roaming/PawPause/agent-events/hermes.jsonl")
 ```
 
 إذا لم يكن اسم مستخدم Windows هو `Administrator`، فاستبدله بالاسم الصحيح. ثم نفذ داخل WSL:
 
 ```bash
-mkdir -p /mnt/c/Users/Administrator/.local/share/pawpause/agent-events
+mkdir -p /mnt/c/Users/Administrator/AppData/Roaming/PawPause/agent-events
 ```
 
 بعد ذلك أعد تشغيل Hermes.
