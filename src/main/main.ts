@@ -80,6 +80,7 @@ const MIN_CUSTOM_REMINDER_SCALE_MULTIPLIER = 1;
 const MAX_CUSTOM_REMINDER_SCALE_MULTIPLIER = 3;
 const PET_VISUAL_BASE_SCALE = 0.88;
 const PET_WINDOW_PADDING = 52;
+const COUNTDOWN_BADGE_MIN_WINDOW_WIDTH = 132;
 const BUBBLE_WINDOW_WIDTH = 300;
 const BUBBLE_RENDER_WIDTH = 276;
 const BUBBLE_WINDOW_EXTRA_HEIGHT = 190;
@@ -322,7 +323,7 @@ function visiblePetSize(scale: number): Pick<Electron.Rectangle, "width" | "heig
 function compactPetWindowSize(scale = getSettings().petScale): Pick<Electron.Rectangle, "width" | "height"> {
   const petSize = visiblePetSize(scale);
   return {
-    width: Math.max(44, petSize.width + PET_WINDOW_PADDING),
+    width: Math.max(COUNTDOWN_BADGE_MIN_WINDOW_WIDTH, petSize.width + PET_WINDOW_PADDING),
     height: Math.max(48, petSize.height + PET_WINDOW_PADDING)
   };
 }

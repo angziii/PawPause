@@ -685,7 +685,6 @@ export function SettingsView(): JSX.Element {
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [newReminderTitle, setNewReminderTitle] = useState("");
   const [newReminderTime, setNewReminderTime] = useState("11:30");
-  const [newReminderCountdown, setNewReminderCountdown] = useState(true);
   const now = useNow();
   const savedSettingsKey = JSON.stringify(settings);
   const language = resolveLanguage(draft.language);
@@ -759,7 +758,7 @@ export function SettingsView(): JSX.Element {
         title,
         time,
         enabled: true,
-        showCountdownOnPet: newReminderCountdown,
+        showCountdownOnPet: true,
         countdownLeadMinutes: DEFAULT_CUSTOM_REMINDER_COUNTDOWN_LEAD_MINUTES,
         enlargePetOnDue: false,
         duePetScaleMultiplier: DEFAULT_CUSTOM_REMINDER_DUE_SCALE_MULTIPLIER,
@@ -950,14 +949,6 @@ export function SettingsView(): JSX.Element {
                 onChange={(event) => setNewReminderTime(event.target.value)}
               />
             </label>
-            <div className="reminder-composer__toggle">
-              <span>{labels.customReminderCountdown}</span>
-              <ToggleControl
-                checked={newReminderCountdown}
-                onChange={setNewReminderCountdown}
-                ariaLabel={labels.customReminderCountdown}
-              />
-            </div>
             <button type="button" className="pref-action reminder-composer__add" onClick={addCustomReminder}>
               {labels.addReminder}
             </button>
